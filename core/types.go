@@ -17,9 +17,11 @@
 package core
 
 import (
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/core/vm"
+	"context"
+
+	"github.com/ledgerwatch/turbo-geth/core/state"
+	"github.com/ledgerwatch/turbo-geth/core/types"
+	"github.com/ledgerwatch/turbo-geth/core/vm"
 )
 
 // Validator is an interface which defines the standard for block validation. It
@@ -27,11 +29,11 @@ import (
 // done by the specific consensus engines.
 type Validator interface {
 	// ValidateBody validates the given block's content.
-	ValidateBody(block *types.Block) error
+	ValidateBody(ctx context.Context, block *types.Block) error
 
 	// ValidateState validates the given statedb and optionally the receipts and
 	// gas used.
-	ValidateState(block *types.Block, state *state.StateDB, receipts types.Receipts, usedGas uint64) error
+	ValidateState(block, parent *types.Block, state *state.IntraBlockState, tds *state.TrieDbState, receipts types.Receipts, usedGas uint64) error
 }
 
 // Prefetcher is an interface for pre-caching transaction signatures and state.
@@ -44,8 +46,5 @@ type Prefetcher interface {
 
 // Processor is an interface for processing blocks using a given initial state.
 type Processor interface {
-	// Process processes the state changes according to the Ethereum rules by running
-	// the transaction messages using the statedb and applying any rewards to both
-	// the processor (coinbase) and any included uncles.
-	Process(block *types.Block, statedb *state.StateDB, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error)
+	Process(block *types.Block, statedb *state.IntraBlockState, tds *state.TrieDbState, cfg vm.Config) (types.Receipts, []*types.Log, uint64, error)
 }

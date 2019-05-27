@@ -45,7 +45,7 @@ func TestBlockchain(t *testing.T) {
 	bt.skipLoad(`.*randomStatetest94.json.*`)
 
 	bt.walk(t, blockTestDir, func(t *testing.T, name string, test *BlockTest) {
-		if err := bt.checkFailure(t, name, test.Run()); err != nil {
+		if err := bt.checkFailure(t, test.Run()); err != nil {
 			t.Error(err)
 		}
 	})

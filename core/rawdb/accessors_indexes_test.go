@@ -20,10 +20,10 @@ import (
 	"math/big"
 	"testing"
 
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/ethdb"
-	"github.com/ethereum/go-ethereum/rlp"
+	"github.com/ledgerwatch/turbo-geth/common"
+	"github.com/ledgerwatch/turbo-geth/core/types"
+	"github.com/ledgerwatch/turbo-geth/ethdb"
+	"github.com/ledgerwatch/turbo-geth/rlp"
 )
 
 // Tests that positional lookup metadata can be stored and retrieved.
@@ -98,7 +98,9 @@ func TestLookupStorage(t *testing.T) {
 			}
 			// Delete the transactions and check purge
 			for i, tx := range txs {
-				DeleteTxLookupEntry(db, tx.Hash())
+				if err := DeleteTxLookupEntry(db, tx.Hash()); err != nil {
+					t.Fatal(err)
+				}
 				if txn, _, _, _ := ReadTransaction(db, tx.Hash()); txn != nil {
 					t.Fatalf("tx #%d [%x]: deleted transaction returned: %v", i, tx.Hash(), txn)
 				}

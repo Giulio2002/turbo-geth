@@ -26,18 +26,17 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ethereum/go-ethereum/cmd/utils"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/console"
-	"github.com/ethereum/go-ethereum/core"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/core/types"
-	"github.com/ethereum/go-ethereum/eth/downloader"
-	"github.com/ethereum/go-ethereum/event"
-	"github.com/ethereum/go-ethereum/log"
-	"github.com/ethereum/go-ethereum/trie"
-	"gopkg.in/urfave/cli.v1"
+	"github.com/ledgerwatch/turbo-geth/cmd/utils"
+	"github.com/ledgerwatch/turbo-geth/common"
+	"github.com/ledgerwatch/turbo-geth/console"
+	"github.com/ledgerwatch/turbo-geth/core"
+	"github.com/ledgerwatch/turbo-geth/core/state"
+	"github.com/ledgerwatch/turbo-geth/core/types"
+	"github.com/ledgerwatch/turbo-geth/eth/downloader"
+	"github.com/ledgerwatch/turbo-geth/ethdb"
+	"github.com/ledgerwatch/turbo-geth/event"
+	"github.com/ledgerwatch/turbo-geth/log"
+	"github.com/urfave/cli"
 )
 
 var (
@@ -217,7 +216,7 @@ func initGenesis(ctx *cli.Context) error {
 		if err != nil {
 			utils.Fatalf("Failed to open database: %v", err)
 		}
-		_, hash, err := core.SetupGenesisBlock(chaindb, genesis)
+		_, hash, _, err := core.SetupGenesisBlock(chaindb, genesis)
 		if err != nil {
 			utils.Fatalf("Failed to write genesis block: %v", err)
 		}
@@ -269,19 +268,6 @@ func importChain(ctx *cli.Context) error {
 	chain.Stop()
 	fmt.Printf("Import done in %v.\n\n", time.Since(start))
 
-	// Output pre-compaction stats mostly to see the import trashing
-	stats, err := db.Stat("leveldb.stats")
-	if err != nil {
-		utils.Fatalf("Failed to read database stats: %v", err)
-	}
-	fmt.Println(stats)
-
-	ioStats, err := db.Stat("leveldb.iostats")
-	if err != nil {
-		utils.Fatalf("Failed to read database iostats: %v", err)
-	}
-	fmt.Println(ioStats)
-
 	// Print the memory statistics used by the importing
 	mem := new(runtime.MemStats)
 	runtime.ReadMemStats(mem)
@@ -291,29 +277,6 @@ func importChain(ctx *cli.Context) error {
 	fmt.Printf("Allocations:   %.3f million\n", float64(mem.Mallocs)/1000000)
 	fmt.Printf("GC pause:      %v\n\n", time.Duration(mem.PauseTotalNs))
 
-	if ctx.GlobalBool(utils.NoCompactionFlag.Name) {
-		return nil
-	}
-
-	// Compact the entire database to more accurately measure disk io and print the stats
-	start = time.Now()
-	fmt.Println("Compacting entire database...")
-	if err = db.Compact(nil, nil); err != nil {
-		utils.Fatalf("Compaction failed: %v", err)
-	}
-	fmt.Printf("Compaction done in %v.\n\n", time.Since(start))
-
-	stats, err = db.Stat("leveldb.stats")
-	if err != nil {
-		utils.Fatalf("Failed to read database stats: %v", err)
-	}
-	fmt.Println(stats)
-
-	ioStats, err = db.Stat("leveldb.iostats")
-	if err != nil {
-		utils.Fatalf("Failed to read database iostats: %v", err)
-	}
-	fmt.Println(ioStats)
 	return nil
 }
 
@@ -359,7 +322,7 @@ func importPreimages(ctx *cli.Context) error {
 	stack := makeFullNode(ctx)
 	defer stack.Close()
 
-	db := utils.MakeChainDatabase(ctx, stack)
+	db := utils.MakeChainDatabase(ctx, stack).(*ethdb.BoltDatabase)
 	start := time.Now()
 
 	if err := utils.ImportPreimages(db, ctx.Args().First()); err != nil {
@@ -377,10 +340,10 @@ func exportPreimages(ctx *cli.Context) error {
 	stack := makeFullNode(ctx)
 	defer stack.Close()
 
-	db := utils.MakeChainDatabase(ctx, stack)
+	diskdb := utils.MakeChainDatabase(ctx, stack).(*ethdb.BoltDatabase)
 	start := time.Now()
 
-	if err := utils.ExportPreimages(db, ctx.Args().First()); err != nil {
+	if err := utils.ExportPreimages(diskdb, ctx.Args().First()); err != nil {
 		utils.Fatalf("Export error: %v\n", err)
 	}
 	fmt.Printf("Export done in %v\n", time.Since(start))
@@ -409,7 +372,7 @@ func copyDb(ctx *cli.Context) error {
 	dl := downloader.New(0, chainDb, syncBloom, new(event.TypeMux), chain, nil, nil)
 
 	// Create a source peer to satisfy downloader requests from
-	db, err := rawdb.NewLevelDBDatabaseWithFreezer(ctx.Args().First(), ctx.GlobalInt(utils.CacheFlag.Name)/2, 256, ctx.Args().Get(1), "")
+	db, err := ethdb.NewBoltDatabase(ctx.Args().First())
 	if err != nil {
 		return err
 	}
@@ -425,7 +388,7 @@ func copyDb(ctx *cli.Context) error {
 	start := time.Now()
 
 	currentHeader := hc.CurrentHeader()
-	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(currentHeader.Hash(), currentHeader.Number.Uint64()), syncMode); err != nil {
+	if err = dl.Synchronise("local", currentHeader.Hash(), hc.GetTd(nil, currentHeader.Hash(), currentHeader.Number.Uint64()), syncMode); err != nil {
 		return err
 	}
 	for dl.Synchronising() {
@@ -433,13 +396,6 @@ func copyDb(ctx *cli.Context) error {
 	}
 	fmt.Printf("Database copy done in %v\n", time.Since(start))
 
-	// Compact the entire database to remove any sync overhead
-	start = time.Now()
-	fmt.Println("Compacting entire database...")
-	if err = db.Compact(nil, nil); err != nil {
-		utils.Fatalf("Compaction failed: %v", err)
-	}
-	fmt.Printf("Compaction done in %v.\n\n", time.Since(start))
 	return nil
 }
 
@@ -521,22 +477,11 @@ func dump(ctx *cli.Context) error {
 			fmt.Println("{}")
 			utils.Fatalf("block not found")
 		} else {
-			state, err := state.New(block.Root(), state.NewDatabase(chainDb))
+			tds, err := state.NewTrieDbState(block.Root(), chainDb, block.NumberU64())
 			if err != nil {
 				utils.Fatalf("could not create new state: %v", err)
 			}
-			excludeCode := ctx.Bool(utils.ExcludeCodeFlag.Name)
-			excludeStorage := ctx.Bool(utils.ExcludeStorageFlag.Name)
-			includeMissing := ctx.Bool(utils.IncludeIncompletesFlag.Name)
-			if ctx.Bool(utils.IterativeOutputFlag.Name) {
-				state.IterativeDump(excludeCode, excludeStorage, !includeMissing, json.NewEncoder(os.Stdout))
-			} else {
-				if includeMissing {
-					fmt.Printf("If you want to include accounts with missing preimages, you need iterative output, since" +
-						" otherwise the accounts will overwrite each other in the resulting mapping.")
-				}
-				fmt.Printf("%v %s\n", includeMissing, state.Dump(excludeCode, excludeStorage, false))
-			}
+			fmt.Printf("%s\n", tds.Dump())
 		}
 	}
 	return nil

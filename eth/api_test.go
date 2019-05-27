@@ -24,11 +24,13 @@ import (
 	"sort"
 	"testing"
 
+	"context"
+
 	"github.com/davecgh/go-spew/spew"
-	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethereum/go-ethereum/core/rawdb"
-	"github.com/ethereum/go-ethereum/core/state"
-	"github.com/ethereum/go-ethereum/crypto"
+	"github.com/ledgerwatch/turbo-geth/common"
+	"github.com/ledgerwatch/turbo-geth/core/state"
+	"github.com/ledgerwatch/turbo-geth/crypto"
+	"github.com/ledgerwatch/turbo-geth/ethdb"
 )
 
 var dumper = spew.ConfigState{Indent: "    "}
@@ -188,9 +190,11 @@ func TestEmptyAccountRange(t *testing.T) {
 func TestStorageRangeAt(t *testing.T) {
 	// Create a state where account 0x010000... has a few storage entries.
 	var (
-		state, _ = state.New(common.Hash{}, state.NewDatabase(rawdb.NewMemoryDatabase()))
-		addr     = common.Address{0x01}
-		keys     = []common.Hash{ // hashes of Keys of storage
+		db      = ethdb.NewMemDatabase()
+		tds, _  = state.NewTrieDbState(common.Hash{}, db, 0)
+		statedb = state.New(tds)
+		addr    = common.Address{0x01}
+		keys    = []common.Hash{ // hashes of Keys of storage
 			common.HexToHash("340dd630ad21bf010b4e676dbfa9ba9a02175262d1fa356232cfde6cb5b47ef2"),
 			common.HexToHash("426fcb404ab2d5d8e61a3d918108006bbb0a9be65e92235bb10eefbdb6dcd053"),
 			common.HexToHash("48078cfed56339ea54962e72c37c7f588fc4f8e5bc173827ba75cb10a63a96a5"),
@@ -203,8 +207,26 @@ func TestStorageRangeAt(t *testing.T) {
 			keys[3]: {Key: &common.Hash{0x03}, Value: common.Hash{0x04}},
 		}
 	)
+	tds.StartNewBuffer()
 	for _, entry := range storage {
-		state.SetState(addr, *entry.Key, entry.Value)
+		statedb.SetState(addr, *entry.Key, entry.Value)
+	}
+
+	err := statedb.FinalizeTx(context.Background(), tds.TrieStateWriter())
+	if err != nil {
+		t.Fatal("error while finalising state", err)
+	}
+
+	_, err = tds.ComputeTrieRoots()
+	if err != nil {
+		t.Fatal("error while computing trie roots of the state", err)
+	}
+
+	tds.SetBlockNr(1)
+
+	err = statedb.CommitBlock(context.Background(), tds.DbStateWriter())
+	if err != nil {
+		t.Fatal("error while committing state", err)
 	}
 
 	// Check a few combinations of limit and start/end.
@@ -234,8 +256,9 @@ func TestStorageRangeAt(t *testing.T) {
 			want: StorageRangeResult{storageMap{keys[1]: storage[keys[1]], keys[2]: storage[keys[2]]}, &keys[3]},
 		},
 	}
+	dbs := state.NewDbState(db, 1)
 	for _, test := range tests {
-		result, err := storageRangeAt(state.StorageTrie(addr), test.start, test.limit)
+		result, err := storageRangeAt(dbs, addr, test.start, test.limit)
 		if err != nil {
 			t.Error(err)
 		}

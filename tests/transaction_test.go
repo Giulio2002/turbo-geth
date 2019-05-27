@@ -18,8 +18,6 @@ package tests
 
 import (
 	"testing"
-
-	"github.com/ethereum/go-ethereum/params"
 )
 
 func TestTransaction(t *testing.T) {
@@ -46,8 +44,8 @@ func TestTransaction(t *testing.T) {
 	// internally to calculate the cost
 	txt.skipLoad("^ttValue/TransactionWithHighValueOverflow.json")
 	txt.walk(t, transactionTestDir, func(t *testing.T, name string, test *TransactionTest) {
-		cfg := params.MainnetChainConfig
-		if err := txt.checkFailure(t, name, test.Run(cfg)); err != nil {
+		cfg := txt.findConfig(name)
+		if err := txt.checkFailure(t, test.Run(cfg)); err != nil {
 			t.Error(err)
 		}
 	})
