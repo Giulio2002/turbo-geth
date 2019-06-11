@@ -26,11 +26,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ledgerwatch/bolt"
 	ethereum "github.com/ledgerwatch/turbo-geth"
 	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/core/types"
 	"github.com/ledgerwatch/turbo-geth/ethdb"
 	"github.com/ledgerwatch/turbo-geth/event"
+	"strconv"
 )
 
 // Reduce some of the parameters to make the tester faster.
@@ -441,7 +443,7 @@ func testThrottling(t *testing.T, protocol int, mode SyncMode) {
 
 	// Create a long block chain to download and the tester
 	targetBlocks := testChainBase.len() - 1
-	testChain:=testChainBase.copy(testChainBase.len())
+	testChain := testChainBase.copy(testChainBase.len())
 	tester.newPeer("peer", protocol, testChain)
 
 	// Wrap the importer to allow stepping
@@ -1576,19 +1578,77 @@ func TestRemoteHeaderRequestSpan(t *testing.T) {
 }
 
 func TestDataRace(t *testing.T) {
-	wg:= &sync.WaitGroup{}
+	wg := &sync.WaitGroup{}
 
 	const N = 10
 	wg.Add(N)
-	ln:=testChainBase.len()
-	for i:=0; i<N; i++ {
-		go makeFork(wg,ln,i)
+	ln := testChainBase.len()
+	for i := 0; i < N; i++ {
+		go makeFork(wg, ln, i)
 	}
 	wg.Wait()
 }
 
 func makeFork(wg *sync.WaitGroup, ln, i int) {
-	testChainBase.makeFork(ln,false, uint8(i))
+	testChainBase.makeFork(ln, false, uint8(i))
 	wg.Done()
 	fmt.Println("done", i)
+}
+
+func TestMemCopyDataRace(t *testing.T) {
+	readDB, err := bolt.Open("in-memory", 0600, &bolt.Options{MemOnly: true})
+	if err != nil {
+		panic(err)
+	}
+
+	const numOfCopy = 100
+	const numOfBucket = 100
+	const numOfElementsInBucket = 1000
+	if err := readDB.Update(func(writeTx *bolt.Tx) error {
+		for i := 0; i < numOfBucket; i++ {
+			b, err := writeTx.CreateBucket([]byte("bucket_"+strconv.Itoa(i)), true)
+			if err != nil {
+				return err
+			}
+			for j := 0; j < numOfElementsInBucket; j++ {
+				err = b.Put([]byte("key_"+strconv.Itoa(i)+"_"+strconv.Itoa(j)), []byte(strconv.Itoa(j)))
+				if err != nil {
+					return err
+				}
+			}
+		}
+		return nil
+	}); err != nil {
+		panic(err)
+	}
+
+	wg := new(sync.WaitGroup)
+	wg.Add(numOfCopy)
+	for i := 0; i < numOfCopy; i++ {
+		go func() {
+			writeDB, err := bolt.Open("in-memory", 0600, &bolt.Options{MemOnly: true})
+			if err != nil {
+				panic(err)
+			}
+			err = writeDB.Update(func(writeTX *bolt.Tx) error {
+				return readDB.View(func(readTX *bolt.Tx) error {
+					return readTX.ForEach(func(name []byte, b *bolt.Bucket) error {
+						newBucket, err := writeTX.CreateBucket(name, true)
+						if err != nil {
+							return err
+						}
+						return b.ForEach(func(k, v []byte) error {
+							return newBucket.Put(k, v)
+						})
+					})
+				})
+			})
+			if err != nil {
+				panic(err)
+			}
+			wg.Done()
+		}()
+
+	}
+	wg.Wait()
 }
