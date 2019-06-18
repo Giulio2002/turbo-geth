@@ -74,7 +74,6 @@ lint: ## Run linters.
 lintci:
 	@echo "--> Running linter for code diff versus commit $(LATEST_COMMIT)"
 	@./build/bin/golangci-lint run \
-	    -j=4 \
 	    --new-from-rev=$(LATEST_COMMIT) \
 	    --exclude="which can be annoying to use" \
 	    --verbose
