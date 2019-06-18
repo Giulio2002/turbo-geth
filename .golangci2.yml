@@ -14,6 +14,24 @@ linters:
     - gocyclo
     - gochecknoinits
     - depguard
+    - bodyclose
+    - deadcode
+    - errcheck
+    - goconst
+    - ineffassign
+    - interfacer
+    - nakedret
+    - prealloc
+    - scopelint
+    - structcheck
+    - typecheck
+    - unconvert
+    - unparam
+    - varcheck
+    - gosimple
+    - unused
+    - stylecheck
+    - staticcheck
 
 linters-settings:
     govet:
