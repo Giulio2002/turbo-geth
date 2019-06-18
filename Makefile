@@ -74,7 +74,7 @@ lint: ## Run linters.
 lintci:
 	@echo "--> Running linter for code diff versus commit $(LATEST_COMMIT)"
 	@./build/bin/golangci-lint run \
-		--config="./.golangci3.yml"
+		--config="./.golangci4.yml"
 		--new-from-rev=$(LATEST_COMMIT) \
 		--exclude="which can be annoying to use" \
 		--verbose
@@ -89,7 +89,7 @@ lintci:
 	    --exclude="which can be annoying to use" \
 	    --verbose
 	@./build/bin/golangci-lint run \
-	    --config="./.golangci4.yml"
+	    --config="./.golangci3.yml"
 	    --new-from-rev=$(LATEST_COMMIT) \
 	    --exclude="which can be annoying to use" \
 	    --verbose
