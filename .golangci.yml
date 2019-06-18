@@ -11,6 +11,9 @@ linters:
     - maligned
     - goimports
     - misspell
+    - gocyclo
+    - gochecknoinits
+    - depguard
 
 linters-settings:
     govet:
@@ -22,9 +25,5 @@ linters-settings:
     goconst:
       min-len: 2
       min-occurrences: 2
-    misspell:
-      locale: US
-    gocyclo:
-      min-complexity: 35
     gofmt:
       auto-fix: false
