@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"math/big"
+	"sync"
 
 	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/crypto"
@@ -12,10 +13,15 @@ import (
 	"github.com/ledgerwatch/turbo-geth/rlp"
 )
 
+var incarnations map[common.Address]uint8
+var incMtx sync.Mutex
+func init()  {
+	incarnations = make(map[common.Address]uint8)
+}
+
 type ExtAccount struct {
 	Nonce   uint64
 	Balance *big.Int
-	Incarnation uint8
 }
 
 // Account is the Ethereum consensus representation of accounts.
@@ -26,7 +32,6 @@ type Account struct {
 	Balance     *big.Int
 	Root        common.Hash // merkle root of the storage trie
 	CodeHash    []byte
-	Incarnation		uint8
 	StorageSize *uint64
 }
 
@@ -35,20 +40,6 @@ type accountWithoutStorage struct {
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
-	Incarnation	 uint8
-}
-type RLPAccount struct {
-	Nonce       uint64
-	Balance     *big.Int
-	Root        common.Hash // merkle root of the storage trie
-	CodeHash    []byte
-	StorageSize *uint64
-}
-type RLPAccountWithoutStorage struct {
-	Nonce       uint64
-	Balance     *big.Int
-	Root        common.Hash // merkle root of the storage trie
-	CodeHash    []byte
 }
 
 
@@ -63,7 +54,7 @@ var emptyRoot = common.HexToHash("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cad
 func (a *Account) Encode(ctx context.Context) ([]byte, error) {
 	var toEncode interface{}
 
-	fmt.Println("core/types/accounts/account.go:51 encode version", a.GetIncarnation())
+	//fmt.Println("core/types/accounts/account.go:51 encode version", a.GetIncarnation())
 	if a.IsEmptyCodeHash() && a.IsEmptyRoot() {
 		if (a.Balance == nil || a.Balance.Sign() == 0) && a.Nonce == 0 {
 			fmt.Println("Encode OneByte")
@@ -90,7 +81,6 @@ func (a *Account) Encode(ctx context.Context) ([]byte, error) {
 				Balance:  acc.Balance,
 				Root:     acc.Root,
 				CodeHash: acc.CodeHash,
-				Incarnation:  acc.Incarnation,
 			}
 		}
 	}
@@ -102,19 +92,14 @@ func (a *Account) Encode(ctx context.Context) ([]byte, error) {
 
 func (a *Account) EncodeRLP(ctx context.Context) ([]byte, error) {
 	acc := newAccountCopy(a)
-	toEncode := interface{}(RLPAccount{
-		Nonce:acc.Nonce,
-		Balance:acc.Balance,
-		Root:acc.Root,
-		CodeHash:acc.CodeHash,
-	})
+	toEncode := interface{}(acc)
 
 	if acc.StorageSize != nil {
 		return rlp.EncodeToBytes(toEncode)
 	}
 
 	if acc.StorageSize == nil || !params.GetForkFlag(ctx, params.IsEIP2027Enabled) {
-		toEncode = &RLPAccountWithoutStorage{
+		toEncode = &accountWithoutStorage{
 			Nonce:    acc.Nonce,
 			Balance:  acc.Balance,
 			Root:     acc.Root,
@@ -177,43 +162,6 @@ func (a *Account) Decode(enc []byte) error {
 	return nil
 }
 
-func (a *Account) DecodeRLP(enc []byte) error {
-	dataWithoutStorage := &RLPAccountWithoutStorage{}
-	err := rlp.DecodeBytes(enc, dataWithoutStorage)
-	if err == nil {
-		a.Root = dataWithoutStorage.Root
-		a.CodeHash = dataWithoutStorage.CodeHash
-		a.Balance = dataWithoutStorage.Balance
-		a.Nonce = dataWithoutStorage.Nonce
-
-		return nil
-	}
-
-	if err.Error() != "rlp: input list has too many elements for accounts.accountWithoutStorage" {
-		return err
-	}
-	fmt.Println("default to Account")
-	dataWithStorage := &RLPAccount{}
-	if err := rlp.DecodeBytes(enc, &dataWithStorage); err != nil {
-		return err
-	}
-	a.Root = dataWithStorage.Root
-	a.CodeHash = dataWithStorage.CodeHash
-	a.Balance = dataWithStorage.Balance
-	a.Nonce = dataWithStorage.Nonce
-	a.StorageSize=dataWithStorage.StorageSize
-	return nil
-}
-func DecodeRLP(enc []byte) (*Account, error) {
-	if len(enc) == 0 {
-		return nil, nil
-	}
-
-	acc := new(Account)
-	err := acc.DecodeRLP(enc)
-	return acc, err
-}
-
 
 
 func Decode(enc []byte) (*Account, error) {
@@ -244,7 +192,6 @@ func (a *Account) fill(srcAccount *Account) *Account {
 	a.Balance.Set(srcAccount.Balance)
 
 	a.Nonce = srcAccount.Nonce
-	a.Incarnation = srcAccount.Incarnation
 
 	if srcAccount.StorageSize != nil {
 		a.StorageSize = new(uint64)
@@ -268,7 +215,6 @@ func (a *Account) fillAccountWithoutStorage(srcAccount *accountWithoutStorage) *
 	a.Balance.Set(srcAccount.Balance)
 
 	a.Nonce = srcAccount.Nonce
-	a.Incarnation=srcAccount.Incarnation
 
 	a.StorageSize = nil
 
@@ -284,7 +230,6 @@ func (a *Account) fillFromExtAccount(srcExtAccount ExtAccount) *Account {
 	a.CodeHash = emptyCodeHash
 
 	a.Root = emptyRoot
-	a.Incarnation=srcExtAccount.Incarnation
 
 	return a
 }
@@ -313,11 +258,19 @@ func (a *Account) setDefaultRoot() *Account {
 	return a
 }
 
-func (a *Account) GetIncarnation() uint8  {
-	return a.Incarnation
+func GetIncarnation(address common.Address) uint8  {
+	incMtx.Lock()
+	defer incMtx.Unlock()
+	i,ok := incarnations[address]
+	if ok==false {
+		return 0
+	}
+	return i
 }
-func (a *Account) SetIncarnation(v uint8)  {
-	a.Incarnation = v
+func SetIncarnation(address common.Address, v uint8)  {
+	incMtx.Lock()
+	defer incMtx.Unlock()
+	incarnations[address]=v
 }
 func (a *Account) IsEmptyCodeHash() bool {
 	return a.CodeHash == nil || bytes.Equal(a.CodeHash[:], emptyCodeHash)
@@ -332,7 +285,6 @@ func (extAcc *ExtAccount) fill(srcAccount *Account) *ExtAccount {
 	extAcc.Balance.Set(srcAccount.Balance)
 
 	extAcc.Nonce = srcAccount.Nonce
-	extAcc.Incarnation = srcAccount.Incarnation
 
 	return extAcc
 }
