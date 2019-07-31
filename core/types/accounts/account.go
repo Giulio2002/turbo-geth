@@ -108,7 +108,7 @@ func (a *Account) EncodeRLP(ctx context.Context) ([]byte, error) {
 	}
 
 	enc,err:=rlp.EncodeToBytes(toEncode)
-	fmt.Println("core/types/accounts/account.go:124 EncodeRLP", enc)
+	fmt.Println("core/types/accounts/account.go:124 EncodeRLP", common.Bytes2Hex(enc))
 	return enc, err
 }
 

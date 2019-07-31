@@ -294,7 +294,9 @@ func (tds *TrieDbState) LastRoot() common.Hash {
 
 // DESCRIBED: docs/programmers_guide/guide.md#organising-ethereum-state-into-a-merkle-tree
 func (tds *TrieDbState) ComputeTrieRoots(ctx context.Context) ([]common.Hash, error) {
+	fmt.Println("+ComputeTrieRoots")
 	roots, err := tds.computeTrieRoots(ctx, true)
+	fmt.Println("-ComputeTrieRoots")
 	tds.clearUpdates()
 	return roots, err
 }
@@ -692,7 +694,9 @@ func (tds *TrieDbState) computeTrieRoots(ctx context.Context, forward bool) ([]c
 				tds.t.Delete(addrHash[:], tds.blockNr)
 			}
 		}
+		fmt.Println("+calculate trie hash")
 		roots[i] = tds.t.Hash()
+		fmt.Println("-calculate trie hash")
 	}
 	return roots, nil
 }

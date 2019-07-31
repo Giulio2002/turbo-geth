@@ -19,6 +19,7 @@ package trie
 import (
 	"bytes"
 	"fmt"
+	"github.com/ledgerwatch/turbo-geth/common"
 	"hash"
 
 	"github.com/ledgerwatch/turbo-geth/rlp"
@@ -65,7 +66,9 @@ func returnHasherToPool(h *hasher) {
 // original node initialized with the computed hash to replace the original one.
 func (h *hasher) hash(n node, force bool, storeTo []byte) int {
 	//n.makedirty()
-	return h.hashInternal(n, force, storeTo, 0)
+	hh:=h.hashInternal(n, force, storeTo, 0)
+	fmt.Println(" - hash ", n, " hash = ", hh)
+	return hh
 }
 
 // hash collapses a node down into a hash node, also returning a copy of the
@@ -81,6 +84,7 @@ func (h *hasher) hashInternal(n node, force bool, storeTo []byte, bufOffset int)
 	}
 	// Trie not processed yet or needs storage, walk the children
 	children := h.hashChildren(n, bufOffset)
+	fmt.Println("-- hashChildren ",n, "hash = ", common.Bytes2Hex(children))
 	hashLen := h.store(children, force, storeTo)
 	if hashLen == 32 {
 		switch n := n.(type) {
