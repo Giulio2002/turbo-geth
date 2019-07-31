@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"math/big"
+	"os"
+	"strconv"
 	"strings"
 
 	"github.com/ledgerwatch/turbo-geth/common"
@@ -174,6 +176,9 @@ func (t *StateTest) Run(ctx context.Context, subtest StateSubtest, vmconfig vm.C
 		return nil, nil, common.Hash{}, err
 	}
 	fmt.Printf("\n%s\n", tds.Dump())
+
+	f,err:=os.Create("/Users/boris/go/src/github.com/ledgerwatch/turbo-geth/debug/tries_dump/"+subtest.Fork+"_correct_"+strconv.Itoa(subtest.Index)+".txt")
+	tds.PrintTrie(f)
 
 	roots, err := tds.ComputeTrieRoots(ctx)
 	if err != nil {
