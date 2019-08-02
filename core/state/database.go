@@ -602,9 +602,6 @@ func (tds *TrieDbState) computeTrieRoots(ctx context.Context, forward bool) ([]c
 				}
 			}
 
-			fmt.Println("core/state/database.go:602 acc updates")
-			spew.Dump(b.accountUpdates)
-
 			if forward {
 				if account, ok := b.accountUpdates[addrHash]; ok && account != nil {
 					addrHash,err:=tds.HashAddress(address, false)
@@ -687,6 +684,8 @@ func (tds *TrieDbState) computeTrieRoots(ctx context.Context, forward bool) ([]c
 			tds.storageTrie.Delete(GenerateStoragePrefix(addrHash,0), tds.blockNr)
 		}
 
+		fmt.Println("core/state/database.go:602 acc updates")
+		spew.Dump(b.accountUpdates)
 		for addrHash, account := range b.accountUpdates {
 			if account != nil {
 				data, err := account.EncodeRLP(ctx)
