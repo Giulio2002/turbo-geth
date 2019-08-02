@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
 	"hash"
 	"io"
 	"math/big"
@@ -600,6 +601,10 @@ func (tds *TrieDbState) computeTrieRoots(ctx context.Context, forward bool) ([]c
 					tds.storageTrie.Delete(cKey, tds.blockNr)
 				}
 			}
+
+			fmt.Println("core/state/database.go:602 acc updates")
+			spew.Dump(b.accountUpdates)
+
 			if forward {
 				if account, ok := b.accountUpdates[addrHash]; ok && account != nil {
 					addrHash,err:=tds.HashAddress(address, false)
