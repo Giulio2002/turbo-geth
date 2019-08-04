@@ -700,7 +700,11 @@ func (tds *TrieDbState) computeTrieRoots(ctx context.Context, forward bool) ([]c
 		}
 		fmt.Println("+calculate trie hash")
 		roots[i] = tds.t.Hash()
-		fmt.Println("-calculate trie hash")
+		fmt.Println("-calculate trie hash", roots[i].String())
+	}
+	fmt.Println("core/state/database.go:705 roots:")
+	for i:=range roots {
+		fmt.Println("root", i, roots[i].String())
 	}
 	return roots, nil
 }

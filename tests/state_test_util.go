@@ -219,9 +219,12 @@ func MakePreState(ctx context.Context, db ethdb.Database, accounts core.GenesisA
 	if err := statedb.FinalizeTx(ctx, tds.TrieStateWriter()); err != nil {
 		return nil, nil, err
 	}
+	fmt.Println("tests/state_test_util.go:222 +pre state ComputeTrieRoots")
 	if _, err := tds.ComputeTrieRoots(ctx); err != nil {
 		return nil, nil, err
 	}
+	fmt.Println("tests/state_test_util.go:222 -pre state ComputeTrieRoots")
+
 	tds.SetBlockNr(ctx, blockNr+1)
 	if err := statedb.CommitBlock(ctx, tds.DbStateWriter()); err != nil {
 		return nil, nil, err
