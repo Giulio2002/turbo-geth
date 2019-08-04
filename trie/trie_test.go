@@ -18,8 +18,10 @@ package trie
 
 import (
 	"bytes"
+	"context"
 	"encoding/binary"
 	"fmt"
+	"github.com/ledgerwatch/turbo-geth/core/types/accounts"
 	"io/ioutil"
 	"math/big"
 	"math/rand"
@@ -101,6 +103,60 @@ func TestGet(t *testing.T) {
 		}
 	}
 }
+
+func TestGetAccount4(t *testing.T) {
+	m:=map[common.Hash]accounts.Account {
+		common.HexToHash("0x239482ea8b3a725d3e67dd30a4d3631ed7dc5220c5453f6e23be3eb3a19ecfdf"):accounts.Account{
+			Root:common.HexToHash("0xf38f9f63c760d088d7dd04f743619b6291f63beebd8bdf530628f90e9cfa52d7"),
+			CodeHash:common.HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").Bytes(),
+			Balance:big.NewInt(0),
+
+		},
+		common.HexToHash("0xeb8ec137a2f5a74ec3a73144b552caad890b18b5f725872fa212fff6d4d565ba"):accounts.Account{
+			Root:common.HexToHash("0xf38f9f63c760d088d7dd04f743619b6291f63beebd8bdf530628f90e9cfa52d7"),
+			CodeHash:common.HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").Bytes(),
+			Balance:big.NewInt(0),
+			Nonce:0,
+		},
+		common.HexToHash("0x03601462093b5945d1676df093446790fd31b20e7b12a2e8e5e09d068109616b"):accounts.Account{
+			Root:EmptyRoot,
+			CodeHash:common.HexToHash("0xc5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470").Bytes(),
+			Balance:big.NewInt(1000000000000),
+		},
+		common.HexToHash("0xb3def669517d7c94d8f9d4a51053ef5f9c7e4a0615c75abfdb0348b5d06bc427"):accounts.Account{
+			Root:EmptyRoot,
+			CodeHash:common.HexToHash("0xcf13be16395bcda0dea0744c9093609b58889b97d6ee56725fb8d548bde25c8f").Bytes(),
+			Balance:big.NewInt(0),
+		},
+	}
+	trie1 := newEmpty()
+	//trie2 := newEmpty()
+
+	for k,v:=range m {
+		value,_ := v.EncodeRLP(context.Background())
+		trie1.Update(k[:], value, 1)
+	}
+	//for k:=range m {
+	//	trie2.UpdateAccount(k[:], m[k], 1)
+	//}
+
+	fmt.Println("trie1+")
+	fmt.Println("root = ",trie1.Hash().String())
+	fmt.Println("trie1-")
+	//fmt.Println("trie2+")
+	//fmt.Println("root = ",trie2.Hash().String())
+	//fmt.Println("trie2-")
+	//trie1.PrintTrie()
+	//trie2.PrintTrie()
+	//
+	//if trie1.Hash().String() != trie2.Hash().String() {
+	//	t.Log(trie1.Hash().String())
+	//	t.Log(trie2.Hash().String())
+	//	t.Fatal("root is not equals")
+	//}
+
+}
+
 
 func testDelete(t *testing.T) {
 	trie := newEmpty()
