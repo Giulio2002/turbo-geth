@@ -243,6 +243,59 @@ func TestLargeValue(t *testing.T) {
 	trie.Hash()
 }
 
+
+func TestTrieHash1(t *testing.T) {
+	balance,ok:=new(big.Int).SetString("16000000000000000000", 10)
+	//balance,ok:=new(big.Int).SetString("16000000000000000000", 10)
+	if !ok {
+		t.Fatal("!ok")
+	}
+	a:=accounts.Account{
+		Balance: *balance,
+		Nonce:0,
+		Root:common.BytesToHash([]byte("56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421")),
+		CodeHash:common.BytesToHash([]byte("c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")),
+	}
+	accLen:=a.EncodingLengthForHashing()
+	enc:=make([]byte,accLen, accLen)
+	a.EncodeForHashing(enc)
+	trie1 := newEmpty()
+	trie1.Update([]byte("0x0000000000000000000000000000000000000000"), enc, 0)
+	t.Log(trie1.Hash().String())
+
+	trie2 := newEmpty()
+	trie2.UpdateAccount([]byte("0x0000000000000000000000000000000000000000"), a, 0)
+	t.Log(trie2.Hash().String())
+
+}
+
+/*
+{
+    "root": "c8aa0a6f6f04c5584662c9f57493f296e95eb0c77b3a620fdac28d594af4bced",
+    "accounts": {
+        "0x0000000000000000000000000000000000000000": {
+            "balance": "16000000000000000000",
+            "nonce": 0,
+            "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+        }
+    }
+}
+
+{
+    "root": "e7cb9d2fd449f7bd11126bff55266e7b74936f2f230e21d44d75c04b7780dfeb",
+    "accounts": {
+        "0x0000000000000000000000000000000000000000": {
+            "balance": "16000000000000000000",
+            "nonce": 0,
+            "root": "56e81f171bcc55a6ff8345e692c0f86e5b48e01b996cadc001622fb5e363b421",
+            "codeHash": "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470"
+        }
+    }
+}
+ */
+
+
 type countingDB struct {
 	ethdb.Database
 	gets map[string]int

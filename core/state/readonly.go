@@ -19,6 +19,8 @@ package state
 import (
 	"bytes"
 	"context"
+	"encoding/binary"
+
 	"fmt"
 	"github.com/ledgerwatch/turbo-geth/core/types/accounts"
 
@@ -59,9 +61,10 @@ func (dbs *DbState) SetBlockNr(blockNr uint64) {
 
 func (dbs *DbState) ForEachStorage(addr common.Address, start []byte, cb func(key, seckey, value common.Hash) bool, maxResults int) {
 	st := llrb.New()
-	var s [20 + 32]byte
+	var s  [common.AddressLength + binary.MaxVarintLen64 + common.HashLength]byte
+	//todo integrate incarnations
 	copy(s[:], addr[:])
-	copy(s[20:], start)
+	copy(s[common.AddressLength + binary.MaxVarintLen64:], start)
 	var lastSecKey common.Hash
 	overrideCounter := 0
 	emptyHash := common.Hash{}
@@ -87,7 +90,7 @@ func (dbs *DbState) ForEachStorage(addr common.Address, start []byte, cb func(ke
 			// Skip deleted entries
 			return true, nil
 		}
-		seckey := ks[20:]
+		seckey := ks[common.AddressLength + binary.MaxVarintLen64:]
 		//fmt.Printf("seckey: %x\n", seckey)
 		si := storageItem{}
 		copy(si.seckey[:], seckey)

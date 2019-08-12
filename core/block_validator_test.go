@@ -17,6 +17,7 @@
 package core
 
 import (
+	"fmt"
 	"runtime"
 	"testing"
 	"time"
@@ -40,15 +41,33 @@ func TestHeaderVerification(t *testing.T) {
 	headers := make([]*types.Header, len(blocks))
 	for i, block := range blocks {
 		headers[i] = block.Header()
+		fmt.Println(i, " ", headers[i].Hash().String()," parent - ", headers[i].ParentHash.String(), "root - ", headers[i].Root.String())
 	}
+	fmt.Println("Genesis")
 	// Run the header checker for blocks one-by-one, checking for both valid and invalid nonces
-	chain, _ := NewBlockChain(testdb, nil, params.TestChainConfig, ethash.NewFaker(), vm.Config{}, nil)
+	chain, err := NewBlockChain(testdb, nil, params.TestChainConfig, ethash.NewFaker(), vm.Config{}, nil)
+	if err!=nil {
+		t.Fatal(err)
+	}
 	defer chain.Stop()
+	//fmt.Println("genesis")
+	//spew.Dump(genesis)
+	//fmt.Println("genesis-")
+	////spew.Dump(headers[0])
+	//fmt.Println("test")
+	//h:=chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+	//spew.Dump(h)
+	//fmt.Println("test-")
+	//h2:=chain.GetHeader(headers[0].ParentHash, headers[0].Number.Uint64()-1)
+	//spew.Dump(h2)
+	//t.FailNow()
 
-	for i := 0; i < len(blocks); i++ {
-		for j, valid := range []bool{true, false} {
+
+	for i := 0; i < 2; i++ {
+		for j, valid := range []bool{true} {
 			var results <-chan error
 
+			fmt.Println("Valid =", valid)
 			if valid {
 				engine := ethash.NewFaker()
 				_, results = engine.VerifyHeaders(chain, []*types.Header{headers[i]}, []bool{true})
@@ -72,7 +91,17 @@ func TestHeaderVerification(t *testing.T) {
 			case <-time.After(25 * time.Millisecond):
 			}
 		}
-		chain.InsertChain(blocks[i : i+1])
+
+		_, err:=chain.InsertChain(blocks[i : i+1])
+		if err!=nil {
+			t.Fatal(err)
+		}
+		t.Fatal(i)
+		//fmt.Println("Insert err", err)
+		//fmt.Println("trie(",i,") dump:")
+		//fmt.Println(string(chain.trieDbState.Dump()))
+		//fmt.Println("trie(",i,") = ", )
+		//chain.trieDbState.PrintTrie(os.Stdout)
 	}
 }
 

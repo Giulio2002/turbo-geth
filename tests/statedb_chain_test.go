@@ -18,6 +18,7 @@ package tests
 
 import (
 	"context"
+	"fmt"
 	"math/big"
 	"testing"
 
@@ -85,6 +86,7 @@ func TestEIP2027AccountStorageSize(t *testing.T) {
 	var eipContract *contracts.Eip2027
 
 	blocks, _ := core.GenerateChain(gspec.Config, genesis, engine, genesisDb, 7, func(i int, block *core.BlockGen) {
+		fmt.Println("generatedi=",i)
 		var (
 			tx  *types.Transaction
 			err error

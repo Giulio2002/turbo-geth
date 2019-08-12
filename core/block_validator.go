@@ -18,6 +18,8 @@ package core
 
 import (
 	"fmt"
+	"github.com/davecgh/go-spew/spew"
+	"github.com/ledgerwatch/turbo-geth/common"
 	"io/ioutil"
 	"os"
 	"strconv"
@@ -134,6 +136,16 @@ func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *stat
 	if receiptSha != header.ReceiptHash {
 		return fmt.Errorf("invalid receipt root hash (remote: %x local: %x)", header.ReceiptHash, receiptSha)
 	}
+
+	fmt.Println("core/block_validator.go:138 trie dump:")
+	fmt.Println(string(tds.Dump()))
+	fmt.Println("trie = " )
+	tds.PrintTrie(os.Stdout)
+
+	a,ok:=tds.ReadAccountData(common.BytesToAddress([]byte("0x0000000000000000000000000000000000000000")))
+	fmt.Println("Acc", ok)
+	spew.Dump(a)
+
 	// Validate the state root against the received state root and throw
 	// an error if they don't match.
 	if root := tds.LastRoot(); header.Root != root {

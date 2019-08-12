@@ -96,7 +96,6 @@ func (t *Trie) getAcoount(origNode node, key []byte, pos int, blockNr uint64) (v
 	case *shortNode:
 		nKey := compactToHex(n.Key)
 		if len(key)-pos < len(nKey) || !bytes.Equal(nKey, key[pos:pos+len(nKey)]) {
-			fmt.Println("if")
 			value, gotValue = accounts.Account{}, false
 		} else {
 			if v, ok := n.Val.(accountNode); ok {

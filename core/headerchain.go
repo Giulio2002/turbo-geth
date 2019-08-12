@@ -402,14 +402,19 @@ func (hc *HeaderChain) WriteTd(dbw ethdb.Putter, hash common.Hash, number uint64
 // GetHeader retrieves a block header from the database by hash and number,
 // caching it if found.
 func (hc *HeaderChain) GetHeader(hash common.Hash, number uint64) *types.Header {
+	fmt.Println("HeaderChain) GetHeader", hash.String(), number)
 	// Short circuit if the header's already in the cache, retrieve otherwise
 	if header, ok := hc.headerCache.Get(hash); ok {
+		fmt.Println("cached")
 		return header.(*types.Header)
 	}
+
 	header := rawdb.ReadHeader(hc.chainDb, hash, number)
 	if header == nil {
+		fmt.Println("GetHeader header == nil")
 		return nil
 	}
+	fmt.Println("header != nil")
 	// Cache the found header for next time and return
 	hc.headerCache.Add(hash, header)
 	return header

@@ -17,10 +17,10 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"math/big"
-
-	"context"
+	"os"
 
 	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/consensus"
@@ -214,6 +214,11 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			if err != nil {
 				panic(err)
 			}
+
+			fmt.Println("generate i=", i)
+			fmt.Println(tds.LastRoot().String())
+			fmt.Println(string(tds.Dump()))
+
 			if !b.config.IsByzantium(b.header.Number) {
 				for i, receipt := range b.receipts {
 					receipt.PostState = roots[i].Bytes()
@@ -227,6 +232,12 @@ func GenerateChain(config *params.ChainConfig, parent *types.Block, engine conse
 			if err := statedb.CommitBlock(config.WithEIPsFlags(context.Background(), b.header.Number), tds.DbStateWriter()); err != nil {
 				panic(fmt.Sprintf("state write error: %v", err))
 			}
+			fmt.Println("core/chain_makers.go:220 trie dump:", i)
+			fmt.Println(string(tds.Dump()))
+			fmt.Println("trie = " )
+			tds.PrintTrie(os.Stdout)
+
+
 			return block, b.receipts
 		}
 		return nil, nil
