@@ -81,6 +81,7 @@ type CacheConfig struct {
 	TrieTimeLimit  time.Duration // Time limit after which to flush the current in-memory trie to disk
 
 	ArchiveSyncInterval uint64
+	historyMinInterval  uint64
 	NoHistory           bool
 }
 
@@ -161,6 +162,10 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	}
 	if cacheConfig.ArchiveSyncInterval == 0 {
 		cacheConfig.ArchiveSyncInterval = 1024
+	}
+
+	if cacheConfig.NoHistory {
+		cacheConfig.historyMinInterval = 10000
 	}
 
 	bodyCache, _ := lru.New(bodyCacheLimit)
@@ -1783,7 +1788,7 @@ func (bc *BlockChain) IsNoHistory(currentBlock *big.Int) bool {
 		return false
 	}
 
-	if bc.cacheConfig.ArchiveSyncInterval != 0 {
+	if bc.cacheConfig.ArchiveSyncInterval == 0 {
 		return false
 	}
 
