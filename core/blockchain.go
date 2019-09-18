@@ -1797,7 +1797,7 @@ func (bc *BlockChain) IsNoHistory(currentBlock *big.Int) bool {
 	}
 
 	currentBlockNumber := bc.CurrentBlock().Number().Uint64()
-	if currentBlockNumber >= bc.cacheConfig.historyMinInterval && currentBlockNumber % bc.cacheConfig.historyMinInterval == 0 {
+	if currentBlockNumber >= bc.cacheConfig.historyMinInterval && currentBlockNumber%bc.cacheConfig.historyMinInterval == 0 {
 		log.Error("!!! 3")
 		return true
 	}
