@@ -128,6 +128,9 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	if mode == downloader.FastSync {
 		manager.fastSync = uint32(1)
 	}
+
+	log.Warn("sync", "mode", mode.String())
+
 	// Initiate a sub-protocol for every implemented version we can handle
 	manager.SubProtocols = make([]p2p.Protocol, 0, len(ProtocolVersions)+1)
 	for i, version := range ProtocolVersions {
@@ -168,32 +171,34 @@ func NewProtocolManager(config *params.ChainConfig, mode downloader.SyncMode, ne
 	}
 
 	// Initiate Firehose
-	log.Info("Initialising Firehose protocol", "versions", FirehoseVersions)
-	manager.SubProtocols = append(manager.SubProtocols, p2p.Protocol{
-		Name:    FirehoseName,
-		Version: FirehoseVersions[0],
-		Length:  FirehoseLengths[0],
-		Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
-			peer := &firehosePeer{Peer: p, rw: rw}
-			select {
-			case <-manager.quitSync:
-				return p2p.DiscQuitting
-			default:
-				manager.wg.Add(1)
-				defer manager.wg.Done()
-				return manager.handleFirehose(peer)
-			}
-		},
-		NodeInfo: func() interface{} {
-			return manager.NodeInfo()
-		},
-		PeerInfo: func(id enode.ID) interface{} {
-			if p := manager.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
-				return p.Info()
-			}
-			return nil
-		},
-	})
+	if mode == downloader.FastSync {
+		log.Info("Initialising Firehose protocol", "versions", FirehoseVersions)
+		manager.SubProtocols = append(manager.SubProtocols, p2p.Protocol{
+			Name:    FirehoseName,
+			Version: FirehoseVersions[0],
+			Length:  FirehoseLengths[0],
+			Run: func(p *p2p.Peer, rw p2p.MsgReadWriter) error {
+				peer := &firehosePeer{Peer: p, rw: rw}
+				select {
+				case <-manager.quitSync:
+					return p2p.DiscQuitting
+				default:
+					manager.wg.Add(1)
+					defer manager.wg.Done()
+					return manager.handleFirehose(peer)
+				}
+			},
+			NodeInfo: func() interface{} {
+				return manager.NodeInfo()
+			},
+			PeerInfo: func(id enode.ID) interface{} {
+				if p := manager.peers.Peer(fmt.Sprintf("%x", id[:8])); p != nil {
+					return p.Info()
+				}
+				return nil
+			},
+		})
+	}
 
 	// Construct the different synchronisation mechanisms
 	manager.downloader = downloader.New(mode, chaindb, manager.eventMux, blockchain, nil, manager.removePeer)

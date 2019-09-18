@@ -168,6 +168,8 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 		cacheConfig.historyMinInterval = 10000
 	}
 
+	log.Warn("sync params", "noHistory", cacheConfig.NoHistory, "archiveSyncInterval", cacheConfig.ArchiveSyncInterval, "historyMinInterval", cacheConfig.historyMinInterval)
+
 	bodyCache, _ := lru.New(bodyCacheLimit)
 	bodyRLPCache, _ := lru.New(bodyCacheLimit)
 	receiptsCache, _ := lru.New(receiptsCacheLimit)
@@ -1288,6 +1290,7 @@ func (bc *BlockChain) insertChain(ctx context.Context, chain types.Blocks, verif
 			parentRoot = parent.Root()
 		}
 		if parent != nil && root != parentRoot {
+			// fixme reorg
 			log.Info("Rewinding", "to block", readBlockNr)
 			if _, err = bc.db.Commit(); err != nil {
 				log.Error("Could not commit chainDb before rewinding", err)
@@ -1785,14 +1788,17 @@ func (bc *BlockChain) IsNoHistory(currentBlock *big.Int) bool {
 	}
 
 	if !bc.cacheConfig.NoHistory {
+		log.Error("!!! 1")
 		return false
 	}
 	if bc.cacheConfig.ArchiveSyncInterval == 0 {
+		log.Error("!!! 2")
 		return false
 	}
 
 	currentBlockNumber := bc.CurrentBlock().Number().Uint64()
 	if currentBlockNumber >= bc.cacheConfig.historyMinInterval && currentBlockNumber % bc.cacheConfig.historyMinInterval == 0 {
+		log.Error("!!! 3")
 		return true
 	}
 
@@ -1804,6 +1810,7 @@ func (bc *BlockChain) IsNoHistory(currentBlock *big.Int) bool {
 		isArchiveInterval = (currentBlock.Uint64() - currentBlockNumber) <= bc.cacheConfig.ArchiveSyncInterval
 	}
 
+	log.Error("!!! 4", "res", bc.cacheConfig.NoHistory || isArchiveInterval)
 	return bc.cacheConfig.NoHistory || isArchiveInterval
 }
 
