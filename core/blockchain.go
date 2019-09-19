@@ -160,11 +160,10 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 			NoHistory:      true,
 		}
 	}
-	if cacheConfig.ArchiveSyncInterval == 0 {
-		cacheConfig.ArchiveSyncInterval = 1024
-	}
-
 	if cacheConfig.NoHistory {
+		if cacheConfig.ArchiveSyncInterval == 0 {
+			cacheConfig.ArchiveSyncInterval = 1024
+		}
 		cacheConfig.historyMinInterval = 10000
 	}
 
