@@ -1289,40 +1289,64 @@ func (bc *BlockChain) insertChain(ctx context.Context, chain types.Blocks, verif
 		if parent != nil {
 			parentRoot = parent.Root()
 		}
+		log.Error("Rewinding Commit 1 START")
 		if parent != nil && root != parentRoot {
 			// fixme reorg
-			log.Info("Rewinding", "to block", readBlockNr)
+			log.Error("Rewinding", "to block", readBlockNr)
 			if _, err = bc.db.Commit(); err != nil {
+				log.Error("Rewinding Commit err 1 START")
+				defer log.Error("Rewinding Commit err 2 END")
 				log.Error("Could not commit chainDb before rewinding", err)
 				bc.db.Rollback()
+				log.Error("Rewinding Commit err After Rollback 3 START")
 				bc.trieDbState = nil
 				return 0, events, coalescedLogs, err
 			}
 			if err = bc.trieDbState.UnwindTo(readBlockNr); err != nil {
+				log.Error("Rewinding UnwindTo err 1 START")
+				defer log.Error("Rewinding UnwindTo err 2 END")
 				bc.db.Rollback()
+				log.Error("Rewinding UnwindTo err After Rollback 3 START")
 				bc.trieDbState = nil
 				return 0, events, coalescedLogs, err
 			}
 			root := bc.trieDbState.LastRoot()
 			if root != parentRoot {
+				log.Error("Rewinding IncorrectRewinding err 1 START")
+				defer log.Error("Rewinding IncorrectRewinding err 2 END")
+
 				log.Error("Incorrect rewinding", "root", fmt.Sprintf("%x", root), "expected", fmt.Sprintf("%x", parentRoot))
 				bc.db.Rollback()
+				log.Error("Rewinding IncorrectRewinding err After Rollback 3 START")
 				bc.trieDbState = nil
 				return 0, events, coalescedLogs, fmt.Errorf("incorrect rewinding: wrong root %x, expected %x", root, parentRoot)
 			}
 			currentBlock := bc.CurrentBlock()
 			if err := bc.reorg(currentBlock, parent); err != nil {
+				log.Error("Rewinding reorg err 1 START",
+					"err", err,
+					"current", currentBlock.NumberU64(),
+					"currentHash", currentBlock.Hash().String(),
+					"currentParentHash", currentBlock.ParentHash().String(),
+					"parent", parent.NumberU64(),
+					"parentHash", parent.ParentHash())
+				defer log.Error("Rewinding reorg err 2 END")
 				bc.db.Rollback()
+				log.Error("Rewinding reorg err After Rollback 3 START")
 				bc.trieDbState = nil
 				return 0, events, coalescedLogs, err
 			}
 			if _, err = bc.db.Commit(); err != nil {
+				log.Error("Rewinding Commit err 1 START")
+				defer log.Error("Rewinding Commit err 2 END")
 				log.Error("Could not commit chainDb after rewinding", err)
 				bc.db.Rollback()
+				log.Error("Rewinding Commit err After Rollback 3 START")
 				bc.trieDbState = nil
 				return 0, events, coalescedLogs, err
 			}
 		}
+		log.Error("Rewinding Commit 2 END")
 		stateDB := state.New(bc.trieDbState)
 		// Process block using the parent state as reference point.
 		t0 := time.Now()
