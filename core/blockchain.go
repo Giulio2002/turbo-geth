@@ -1780,10 +1780,6 @@ func (bc *BlockChain) IsNoHistory(currentBlock *big.Int) bool {
 		return false
 	}
 
-	if bc.cacheConfig.ArchiveSyncInterval != 0 {
-		return false
-	}
-
 	var isArchiveInterval bool
 	currentBlockNumber := bc.CurrentBlock().Number().Uint64()
 	highestKnownBlock := bc.GetHeightKnownBlock()
