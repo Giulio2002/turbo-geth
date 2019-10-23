@@ -28,7 +28,7 @@ import (
 	"testing"
 	"testing/quick"
 
-	"github.com/ethereum/go-ethereum/ethdb/memorydb"
+	"github.com/ledgerwatch/turbo-geth/ethdb/memorydb"
 	"github.com/ledgerwatch/turbo-geth/core/types/accounts"
 
 	"github.com/davecgh/go-spew/spew"

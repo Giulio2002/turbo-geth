@@ -19,7 +19,7 @@ package tests
 import (
 	"fmt"
 
-	"github.com/ethereum/go-ethereum/core"
+	"github.com/ledgerwatch/turbo-geth/core"
 	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/common/hexutil"
 	"github.com/ledgerwatch/turbo-geth/core/types"
