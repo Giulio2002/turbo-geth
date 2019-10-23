@@ -40,7 +40,6 @@ import (
 	"github.com/ledgerwatch/turbo-geth/eth/downloader"
 	"github.com/ledgerwatch/turbo-geth/ethclient"
 	"github.com/ledgerwatch/turbo-geth/internal/debug"
-	"github.com/ledgerwatch/turbo-geth/les"
 	"github.com/ledgerwatch/turbo-geth/log"
 	"github.com/ledgerwatch/turbo-geth/metrics"
 	"github.com/ledgerwatch/turbo-geth/node"
@@ -344,15 +343,6 @@ func startNode(ctx *cli.Context, stack *node.Node) {
 			utils.Fatalf("Failed to retrieve ethereum service: %v", err)
 		}
 		ethService.SetContractBackend(ethClient)
-	}
-	// Set contract backend for les service if local node is
-	// running as a light client.
-	if ctx.GlobalString(utils.SyncModeFlag.Name) == "light" {
-		var lesService *les.LightEthereum
-		if err := stack.Service(&lesService); err != nil {
-			utils.Fatalf("Failed to retrieve light ethereum service: %v", err)
-		}
-		lesService.SetContractBackend(ethClient)
 	}
 
 	go func() {

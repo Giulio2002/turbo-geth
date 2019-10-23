@@ -32,7 +32,6 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/ethereum/go-ethereum/rpc"
 	"github.com/ledgerwatch/turbo-geth/accounts"
 	"github.com/ledgerwatch/turbo-geth/accounts/keystore"
 	"github.com/ledgerwatch/turbo-geth/common"
@@ -50,10 +49,11 @@ import (
 	"github.com/ledgerwatch/turbo-geth/eth/gasprice"
 	"github.com/ledgerwatch/turbo-geth/ethdb"
 	"github.com/ledgerwatch/turbo-geth/ethstats"
-	"github.com/ledgerwatch/turbo-geth/les"
+	"github.com/ledgerwatch/turbo-geth/graphql"
 	"github.com/ledgerwatch/turbo-geth/log"
 	"github.com/ledgerwatch/turbo-geth/metrics"
 	"github.com/ledgerwatch/turbo-geth/metrics/influxdb"
+	"github.com/ledgerwatch/turbo-geth/miner"
 	"github.com/ledgerwatch/turbo-geth/node"
 	"github.com/ledgerwatch/turbo-geth/p2p"
 	"github.com/ledgerwatch/turbo-geth/p2p/discv5"
@@ -61,9 +61,10 @@ import (
 	"github.com/ledgerwatch/turbo-geth/p2p/nat"
 	"github.com/ledgerwatch/turbo-geth/p2p/netutil"
 	"github.com/ledgerwatch/turbo-geth/params"
+	"github.com/ledgerwatch/turbo-geth/rpc"
 
 	pcsclite "github.com/gballet/go-libpcsclite"
-	cli "github.com/urfave/cli"
+	"github.com/urfave/cli"
 )
 
 var (
@@ -1588,11 +1589,6 @@ func RegisterGraphQLService(stack *node.Node, endpoint string, cors, vhosts []st
 		var ethServ *eth.Ethereum
 		if err := ctx.Service(&ethServ); err == nil {
 			return graphql.New(ethServ.APIBackend, endpoint, cors, vhosts, timeouts)
-		}
-		// Try to construct the GraphQL service backed by a light node
-		var lesServ *les.LightEthereum
-		if err := ctx.Service(&lesServ); err == nil {
-			return graphql.New(lesServ.ApiBackend, endpoint, cors, vhosts, timeouts)
 		}
 		// Well, this should not have happened, bail out
 		return nil, errors.New("no Ethereum service")
