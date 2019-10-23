@@ -30,7 +30,6 @@ var indices = []string{"0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "a", "b
 type node interface {
 	print(io.Writer)
 	fstring(string) string
-	cache() (hashNode, bool)
 	dirty() bool
 	hash() []byte
 }
