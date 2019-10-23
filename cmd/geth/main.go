@@ -29,6 +29,8 @@ import (
 	"time"
 
 	"github.com/elastic/gosigar"
+	"github.com/urfave/cli"
+
 	"github.com/ledgerwatch/turbo-geth/accounts"
 	"github.com/ledgerwatch/turbo-geth/accounts/keystore"
 	"github.com/ledgerwatch/turbo-geth/cmd/utils"
@@ -42,8 +44,6 @@ import (
 	"github.com/ledgerwatch/turbo-geth/log"
 	"github.com/ledgerwatch/turbo-geth/metrics"
 	"github.com/ledgerwatch/turbo-geth/node"
-
-	cli "gopkg.in/urfave/cli.v1"
 )
 
 const (

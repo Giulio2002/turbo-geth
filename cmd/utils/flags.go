@@ -63,7 +63,7 @@ import (
 	"github.com/ledgerwatch/turbo-geth/params"
 
 	pcsclite "github.com/gballet/go-libpcsclite"
-	cli "gopkg.in/urfave/cli.v1"
+	cli "github.com/urfave/cli"
 )
 
 var (
