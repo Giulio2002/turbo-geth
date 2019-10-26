@@ -19,7 +19,6 @@ package rawdb
 import (
 	"encoding/json"
 
-	"github.com/ledgerwatch/turbo-geth/ethdb"
 	"github.com/ledgerwatch/turbo-geth/common/dbutils"
 
 	"github.com/ledgerwatch/turbo-geth/common"
@@ -29,7 +28,7 @@ import (
 )
 
 // ReadDatabaseVersion retrieves the version number of the database.
-func ReadDatabaseVersion(db ethdb.KeyValueReader) *uint64 {
+func ReadDatabaseVersion(db DatabaseReader) *uint64 {
 	var version uint64
 
 	enc, _ := db.Get(dbutils.DatabaseVerisionKey, dbutils.DatabaseVerisionKey)
@@ -44,7 +43,7 @@ func ReadDatabaseVersion(db ethdb.KeyValueReader) *uint64 {
 }
 
 // WriteDatabaseVersion stores the version number of the database
-func WriteDatabaseVersion(db ethdb.KeyValueWriter, version uint64) {
+func WriteDatabaseVersion(db DatabaseWriter, version uint64) {
 	enc, err := rlp.EncodeToBytes(version)
 	if err != nil {
 		log.Crit("Failed to encode database version", "err", err)
@@ -69,7 +68,7 @@ func ReadChainConfig(db DatabaseReader, hash common.Hash) *params.ChainConfig {
 }
 
 // WriteChainConfig writes the chain config settings to the database.
-func WriteChainConfig(db ethdb.KeyValueWriter, hash common.Hash, cfg *params.ChainConfig) {
+func WriteChainConfig(db DatabaseWriter, hash common.Hash, cfg *params.ChainConfig) {
 	if cfg == nil {
 		return
 	}
@@ -89,7 +88,7 @@ func ReadPreimage(db DatabaseReader, hash common.Hash) []byte {
 }
 
 // WritePreimages writes the provided set of preimages to the database.
-func WritePreimages(db ethdb.KeyValueWriter, preimages map[common.Hash][]byte) {
+func WritePreimages(db DatabaseWriter, preimages map[common.Hash][]byte) {
 	for hash, preimage := range preimages {
 		if err := db.Put(dbutils.PreimagePrefix, hash.Bytes(), preimage); err != nil {
 			log.Crit("Failed to store trie preimage", "err", err)

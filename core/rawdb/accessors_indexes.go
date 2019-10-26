@@ -37,27 +37,13 @@ type TxLookupEntry struct {
 
 // ReadTxLookupEntry retrieves the positional metadata associated with a transaction
 // hash to allow retrieving the transaction or receipt by hash.
-func ReadTxLookupEntry(db DatabaseReader, hash common.Hash) (common.Hash, uint64, uint64) {
+func ReadTxLookupEntry(db DatabaseReader, hash common.Hash) *uint64 {
 	data, _ := db.Get(dbutils.TxLookupPrefix, hash.Bytes())
 	if len(data) == 0 {
 		return nil
 	}
-	// Database v6 tx lookup just stores the block number
-	if len(data) < common.HashLength {
-		number := new(big.Int).SetBytes(data).Uint64()
-		return &number
-	}
-	// Database v4-v5 tx lookup format just stores the hash
-	if len(data) == common.HashLength {
-		return ReadHeaderNumber(db, common.BytesToHash(data))
-	}
-	// Finally try database v3 tx lookup format
-	var entry LegacyTxLookupEntry
-	if err := rlp.DecodeBytes(data, &entry); err != nil {
-		log.Error("Invalid transaction lookup entry RLP", "hash", hash, "blob", data, "err", err)
-		return nil
-	}
-	return &entry.BlockIndex
+	number := new(big.Int).SetBytes(data).Uint64()
+	return &number
 }
 
 // WriteTxLookupEntries stores a positional metadata for every transaction from
@@ -86,7 +72,7 @@ func DeleteTxLookupEntry(db DatabaseDeleter, hash common.Hash) error {
 
 // ReadTransaction retrieves a specific transaction from the database, along with
 // its added positional metadata.
-func ReadTransaction(db ethdb.Reader, hash common.Hash) (*types.Transaction, common.Hash, uint64, uint64) {
+func ReadTransaction(db DatabaseReader, hash common.Hash) (*types.Transaction, common.Hash, uint64, uint64) {
 	blockNumber := ReadTxLookupEntry(db, hash)
 	if blockNumber == nil {
 		return nil, common.Hash{}, 0, 0
@@ -111,7 +97,7 @@ func ReadTransaction(db ethdb.Reader, hash common.Hash) (*types.Transaction, com
 
 // ReadReceipt retrieves a specific transaction receipt from the database, along with
 // its added positional metadata.
-func ReadReceipt(db ethdb.Reader, hash common.Hash, config *params.ChainConfig) (*types.Receipt, common.Hash, uint64, uint64) {
+func ReadReceipt(db DatabaseReader, hash common.Hash, config *params.ChainConfig) (*types.Receipt, common.Hash, uint64, uint64) {
 	// Retrieve the context of the receipt based on the transaction hash
 	blockNumber := ReadTxLookupEntry(db, hash)
 	if blockNumber == nil {
