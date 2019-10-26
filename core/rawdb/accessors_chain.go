@@ -58,17 +58,19 @@ func DeleteCanonicalHash(db DatabaseDeleter, number uint64) {
 // ReadAllHashes retrieves all the hashes assigned to blocks at a certain heights,
 // both canonical and reorged forks included.
 func ReadAllHashes(db ethdb.Iteratee, number uint64) []common.Hash {
-	prefix := headerKeyPrefix(number)
+	//prefix := headerKeyPrefix(number)
 
 	hashes := make([]common.Hash, 0, 1)
-	it := db.NewIteratorWithPrefix(prefix)
-	defer it.Release()
+	/*
+		it := db.NewIteratorWithPrefix(prefix)
+		defer it.Release()
 
-	for it.Next() {
-		if key := it.Key(); len(key) == len(prefix)+32 {
-			hashes = append(hashes, common.BytesToHash(key[len(key)-32:]))
+		for it.Next() {
+			if key := it.Key(); len(key) == len(prefix)+32 {
+				hashes = append(hashes, common.BytesToHash(key[len(key)-32:]))
+			}
 		}
-	}
+	*/
 	return hashes
 }
 
@@ -84,14 +86,14 @@ func ReadHeaderNumber(db DatabaseReader, hash common.Hash) *uint64 {
 
 // WriteHeaderNumber stores the hash->number mapping.
 func WriteHeaderNumber(db DatabaseWriter, hash common.Hash, number uint64) {
-	enc := encodeBlockNumber(number)
+	enc := dbutils.EncodeBlockNumber(number)
 	if err := db.Put(dbutils.HeaderNumberPrefix, hash[:], enc); err != nil {
 		log.Crit("Failed to store hash to number mapping", "err", err)
 	}
 }
 
 // DeleteHeaderNumber removes hash->number mapping.
-func DeleteHeaderNumber(db DatabaseWriter, hash common.Hash) {
+func DeleteHeaderNumber(db DatabaseDeleter, hash common.Hash) {
 	if err := db.Delete(dbutils.HeaderNumberPrefix, hash[:]); err != nil {
 		log.Crit("Failed to delete hash to number mapping", "err", err)
 	}
