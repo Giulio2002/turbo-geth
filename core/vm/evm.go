@@ -404,7 +404,7 @@ func (evm *EVM) create(caller ContractRef, codeAndHash *codeAndHash, gas uint64,
 	snapshot := evm.IntraBlockState.Snapshot()
 	evm.IntraBlockState.CreateAccount(address, true)
 	if evm.chainRules.IsEIP158 {
-		evm.StateDB.SetNonce(address, 1)
+		evm.IntraBlockState.SetNonce(address, 1)
 	}
 	evm.Transfer(evm.IntraBlockState, caller.Address(), address, value)
 
