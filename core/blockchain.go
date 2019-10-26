@@ -38,7 +38,6 @@ import (
 	"github.com/ledgerwatch/turbo-geth/core/state"
 	"github.com/ledgerwatch/turbo-geth/core/types"
 	"github.com/ledgerwatch/turbo-geth/core/vm"
-	"github.com/ledgerwatch/turbo-geth/crypto"
 	"github.com/ledgerwatch/turbo-geth/ethdb"
 	"github.com/ledgerwatch/turbo-geth/event"
 	"github.com/ledgerwatch/turbo-geth/log"
@@ -167,12 +166,12 @@ type BlockChain struct {
 	currentFastBlock atomic.Value // Current head of the fast-sync chain (may be above the block chain!)
 
 	trieDbState   *state.TrieDbState
-	bodyCache     *lru.Cache     // Cache for the most recent block bodies
-	bodyRLPCache  *lru.Cache     // Cache for the most recent block bodies in RLP encoded format
-	receiptsCache *lru.Cache     // Cache for the most recent receipts per block
-	blockCache    *lru.Cache     // Cache for the most recent entire blocks
-	txLookupCache *lru.Cache     // Cache for the most recent transaction lookup data.
-	futureBlocks  *lru.Cache     // future blocks are blocks added for later processing
+	bodyCache     *lru.Cache // Cache for the most recent block bodies
+	bodyRLPCache  *lru.Cache // Cache for the most recent block bodies in RLP encoded format
+	receiptsCache *lru.Cache // Cache for the most recent receipts per block
+	blockCache    *lru.Cache // Cache for the most recent entire blocks
+	txLookupCache *lru.Cache // Cache for the most recent transaction lookup data.
+	futureBlocks  *lru.Cache // future blocks are blocks added for later processing
 
 	quit    chan struct{} // blockchain quit channel
 	running int32         // running must be called atomically
@@ -186,9 +185,9 @@ type BlockChain struct {
 	processor  Processor  // Block transaction processor interface
 	vmConfig   vm.Config
 
-	badBlocks       *lru.Cache                     // Bad block cache
-	shouldPreserve  func(*types.Block) bool        // Function used to determine whether should preserve the given block.
-	terminateInsert func(common.Hash, uint64) bool // Testing hook used to terminate ancient receipt chain insertion.
+	badBlocks           *lru.Cache                     // Bad block cache
+	shouldPreserve      func(*types.Block) bool        // Function used to determine whether should preserve the given block.
+	terminateInsert     func(common.Hash, uint64) bool // Testing hook used to terminate ancient receipt chain insertion.
 	highestKnownBlock   uint64
 	highestKnownBlockMu sync.Mutex
 	enableReceipts      bool // Whether receipts need to be written to the database
@@ -224,21 +223,21 @@ func NewBlockChain(db ethdb.Database, cacheConfig *CacheConfig, chainConfig *par
 	cdb := db.NewBatch()
 
 	bc := &BlockChain{
-		chainConfig:   chainConfig,
-		cacheConfig:   cacheConfig,
-		db:            cdb,
-		triegc:        prque.New(nil),
-		quit:          make(chan struct{}),
+		chainConfig:    chainConfig,
+		cacheConfig:    cacheConfig,
+		db:             cdb,
+		triegc:         prque.New(nil),
+		quit:           make(chan struct{}),
 		shouldPreserve: shouldPreserve,
-		bodyCache:     bodyCache,
-		bodyRLPCache:  bodyRLPCache,
-		receiptsCache: receiptsCache,
-		blockCache:    blockCache,
+		bodyCache:      bodyCache,
+		bodyRLPCache:   bodyRLPCache,
+		receiptsCache:  receiptsCache,
+		blockCache:     blockCache,
 		txLookupCache:  txLookupCache,
-		futureBlocks:  futureBlocks,
-		engine:        engine,
-		vmConfig:      vmConfig,
-		badBlocks:     badBlocks,
+		futureBlocks:   futureBlocks,
+		engine:         engine,
+		vmConfig:       vmConfig,
+		badBlocks:      badBlocks,
 	}
 	bc.validator = NewBlockValidator(chainConfig, bc, engine)
 	bc.prefetcher = newStatePrefetcher(chainConfig, bc, engine)
@@ -1100,7 +1099,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			}
 
 			// Turbo-Geth doesn't have fast sync support
-		
+
 			// Flush data into ancient database.
 			size += rawdb.WriteAncientBlock(bc.db, block, receiptChain[i], bc.GetTd(block.Hash(), block.NumberU64()))
 			rawdb.WriteTxLookupEntries(batch, block)
@@ -1159,46 +1158,45 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 		}
 		return 0, nil
 	}
-		// writeLive writes blockchain and corresponding receipt chain into active store.
-		writeLive := func(blockChain types.Blocks, receiptChain []types.Receipts) (int, error) {
-			batch := bc.db.NewBatch()
-			for i, block := range blockChain {
-				// Short circuit insertion if shutting down or processing failed
-				if atomic.LoadInt32(&bc.procInterrupt) == 1 {
-					return 0, errInsertionInterrupted
-				}
-				// Short circuit if the owner header is unknown
-				if !bc.HasHeader(block.Hash(), block.NumberU64()) {
-					return i, fmt.Errorf("containing header #%d [%x…] unknown", block.Number(), block.Hash().Bytes()[:4])
-				}
-				if bc.HasBlock(block.Hash(), block.NumberU64()) {
-					stats.ignored++
-					continue
-				}
-				// Write all the data out into the database
-				rawdb.WriteBody(batch, block.Hash(), block.NumberU64(), block.Body())
-				rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), receiptChain[i])
-				rawdb.WriteTxLookupEntries(batch, block)
-	
-				stats.processed++
-				if batch.ValueSize() >= ethdb.IdealBatchSize {
-					if err := batch.Write(); err != nil {
-						return 0, err
-					}
-					size += batch.ValueSize()
-					batch.Reset()
-				}
+	// writeLive writes blockchain and corresponding receipt chain into active store.
+	writeLive := func(blockChain types.Blocks, receiptChain []types.Receipts) (int, error) {
+		batch := bc.db.NewBatch()
+		for i, block := range blockChain {
+			// Short circuit insertion if shutting down or processing failed
+			if atomic.LoadInt32(&bc.procInterrupt) == 1 {
+				return 0, errInsertionInterrupted
 			}
-			if batch.ValueSize() > 0 {
-				size += batch.ValueSize()
+			// Short circuit if the owner header is unknown
+			if !bc.HasHeader(block.Hash(), block.NumberU64()) {
+				return i, fmt.Errorf("containing header #%d [%x…] unknown", block.Number(), block.Hash().Bytes()[:4])
+			}
+			if bc.HasBlock(block.Hash(), block.NumberU64()) {
+				stats.ignored++
+				continue
+			}
+			// Write all the data out into the database
+			rawdb.WriteBody(batch, block.Hash(), block.NumberU64(), block.Body())
+			rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), receiptChain[i])
+			rawdb.WriteTxLookupEntries(batch, block)
+
+			stats.processed++
+			if batch.ValueSize() >= ethdb.IdealBatchSize {
 				if err := batch.Write(); err != nil {
 					return 0, err
 				}
+				size += batch.ValueSize()
+				batch.Reset()
 			}
-			updateHead(blockChain[len(blockChain)-1])
-			return 0, nil
 		}
-
+		if batch.ValueSize() > 0 {
+			size += batch.ValueSize()
+			if err := batch.Write(); err != nil {
+				return 0, err
+			}
+		}
+		updateHead(blockChain[len(blockChain)-1])
+		return 0, nil
+	}
 
 	// Write downloaded chain data and corresponding receipt chain data.
 	if len(ancientBlocks) > 0 {
@@ -1893,7 +1891,6 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	}
 	bc.insert(commonBlock)
 	// Insert the new chain, taking care of the proper incremental order
-	var addedTxs types.Transactions
 	for i := len(newChain) - 1; i >= 0; i-- {
 		// insert the block in the canonical way, re-writing history
 		bc.insert(newChain[i])
@@ -1919,7 +1916,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		}
 		rawdb.DeleteCanonicalHash(bc.db, i)
 	}
-	
+
 	if len(deletedLogs) > 0 {
 		go bc.rmLogsFeed.Send(RemovedLogsEvent{deletedLogs})
 	}
@@ -2116,22 +2113,6 @@ func (bc *BlockChain) GetAncestor(hash common.Hash, number, ancestor uint64, max
 // caching it (associated with its hash) if found.
 func (bc *BlockChain) GetHeaderByNumber(number uint64) *types.Header {
 	return bc.hc.GetHeaderByNumber(number)
-}
-
-// GetTransactionLookup retrieves the lookup associate with the given transaction
-// hash from the cache or database.
-func (bc *BlockChain) GetTransactionLookup(hash common.Hash) *rawdb.LegacyTxLookupEntry {
-	// Short circuit if the txlookup already in the cache, retrieve otherwise
-	if lookup, exist := bc.txLookupCache.Get(hash); exist {
-		return lookup.(*rawdb.LegacyTxLookupEntry)
-	}
-	tx, blockHash, blockNumber, txIndex := rawdb.ReadTransaction(bc.db, hash)
-	if tx == nil {
-		return nil
-	}
-	lookup := &rawdb.LegacyTxLookupEntry{BlockHash: blockHash, BlockIndex: blockNumber, Index: txIndex}
-	bc.txLookupCache.Add(hash, lookup)
-	return lookup
 }
 
 // Config retrieves the chain's fork configuration.
