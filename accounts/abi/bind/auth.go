@@ -23,6 +23,7 @@ import (
 	"io/ioutil"
 
 	"github.com/ledgerwatch/turbo-geth/accounts"
+	"github.com/ledgerwatch/turbo-geth/accounts/external"
 	"github.com/ledgerwatch/turbo-geth/accounts/keystore"
 	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/core/types"
