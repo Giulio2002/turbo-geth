@@ -554,7 +554,6 @@ func (c *Clique) Prepare(chain consensus.ChainReader, header *types.Header) erro
 // rewards given.
 func (c *Clique) Finalize(chainConfig *params.ChainConfig, header *types.Header, state *state.IntraBlockState, txs []*types.Transaction, uncles []*types.Header) {
 	// No block rewards in PoA, so the state remains as is and uncles are dropped
-	header.Root = state.IntermediateRoot(chainConfig.IsEIP158(header.Number))
 	header.UncleHash = types.CalcUncleHash(nil)
 }
 
