@@ -219,10 +219,7 @@ func GenerateChain(ctx context.Context, config *params.ChainConfig, parent *type
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			block, _ := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, b.txs, b.uncles, b.receipts)
-
-			// Write state changes to db
-			root, err := statedb.Commit(config.IsEIP158(b.header.Number))
+			_, err := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, b.txs, b.uncles, b.receipts)
 
 			ctx, _ = params.GetNoHistoryByBlock(ctx, b.header.Number)
 			if err := statedb.FinalizeTx(ctx, tds.TrieStateWriter()); err != nil {
@@ -266,7 +263,7 @@ func GenerateChain(ctx context.Context, config *params.ChainConfig, parent *type
 	return blocks, receipts
 }
 
-func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.StateDB, engine consensus.Engine) *types.Header {
+func makeHeader(chain consensus.ChainReader, parent *types.Block, state *state.IntraBlockState, engine consensus.Engine) *types.Header {
 	var time uint64
 	if parent.Time() == 0 {
 		time = 10

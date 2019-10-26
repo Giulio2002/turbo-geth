@@ -474,11 +474,11 @@ func (hc *HeaderChain) SetCurrentHeader(dbw ethdb.Putter, head *types.Header) {
 type (
 	// UpdateHeadBlocksCallback is a callback function that is called by SetHead
 	// before head header is updated.
-	UpdateHeadBlocksCallback func(ethdb.KeyValueWriter, *types.Header)
+	UpdateHeadBlocksCallback func(rawdb.DatabaseWriter, *types.Header)
 
 	// DeleteBlockContentCallback is a callback function that is called by SetHead
 	// before each header is deleted.
-	DeleteBlockContentCallback func(ethdb.KeyValueWriter, common.Hash, uint64)
+	DeleteBlockContentCallback func(rawdb.DatabaseDeleter, common.Hash, uint64)
 )
 
 // SetHead rewinds the local chain to a new head. Everything above the new head
