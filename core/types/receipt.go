@@ -191,11 +191,7 @@ func (r *ReceiptForStorage) EncodeRLP(w io.Writer) error {
 	enc := &storedReceiptRLP{
 		PostStateOrStatus: (*Receipt)(r).statusEncoding(),
 		CumulativeGasUsed: r.CumulativeGasUsed,
-		//Bloom:             r.Bloom,
-		//TxHash:            r.TxHash,
-		ContractAddress: r.ContractAddress,
-		Logs:            make([]*LogForStorage, len(r.Logs)),
-		GasUsed:         r.GasUsed,
+		Logs:              make([]*LogForStorage, len(r.Logs)),
 	}
 	for i, log := range r.Logs {
 		enc.Logs[i] = (*LogForStorage)(log)
@@ -271,8 +267,6 @@ func decodeV3StoredReceiptRLP(r *ReceiptForStorage, blob []byte) error {
 		return err
 	}
 	r.CumulativeGasUsed = stored.CumulativeGasUsed
-	r.Bloom = stored.Bloom
-	r.TxHash = stored.TxHash
 	r.ContractAddress = stored.ContractAddress
 	r.GasUsed = stored.GasUsed
 	r.Logs = make([]*Log, len(stored.Logs))

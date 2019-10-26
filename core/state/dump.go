@@ -85,12 +85,14 @@ func (self iterativeDump) onRoot(root common.Hash) {
 		Root common.Hash `json:"root"`
 	}{root})
 }
-func (self *TrieDbState) dump(c collector, excludeCode, excludeStorage, excludeMissingPreimages bool) Dump {
+func (self *TrieDbState) dump(c collector, excludeCode, excludeStorage, excludeMissingPreimages bool) {
+	emptyAddress := (common.Address{})
+	missingPreimages := 0
 	c.onRoot(self.t.Hash())
 	var acc accounts.Account
 	var prefix [32]byte
 	err := self.db.Walk(dbutils.AccountsBucket, prefix[:], 0, func(k, v []byte) (bool, error) {
-		addr := self.GetKey(k)
+		addr := common.BytesToAddress(self.GetKey(k))
 		var err error
 		if err = acc.DecodeForStorage(v); err != nil {
 			return false, err
@@ -113,12 +115,12 @@ func (self *TrieDbState) dump(c collector, excludeCode, excludeStorage, excludeM
 			// Preimage missing
 			missingPreimages++
 			if excludeMissingPreimages {
-				continue
+				return true, nil
 			}
-			account.SecureKey = it.Key
+			account.SecureKey = common.CopyBytes(k)
 		}
 		if !excludeCode {
-			account.Code = common.Bytes2Hex(obj.Code(self.db))
+			account.Code = common.Bytes2Hex(code)
 		}
 
 		if acc.HasStorageSize {
@@ -129,7 +131,7 @@ func (self *TrieDbState) dump(c collector, excludeCode, excludeStorage, excludeM
 		buf := make([]byte, binary.MaxVarintLen64)
 		binary.PutUvarint(buf, acc.GetIncarnation())
 
-		addrHash, err := self.HashAddress(common.BytesToAddress(addr), false)
+		addrHash, err := self.HashAddress(addr, false)
 		if err != nil {
 			return false, err
 		}
