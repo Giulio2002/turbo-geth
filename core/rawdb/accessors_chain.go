@@ -226,8 +226,8 @@ func DeleteHeader(db DatabaseDeleter, hash common.Hash, number uint64) {
 
 // deleteHeaderWithoutNumber removes only the block header but does not remove
 // the hash to number mapping.
-func deleteHeaderWithoutNumber(db DatabaseWriter, hash common.Hash, number uint64) {
-	if err := db.Delete(headerKey(number, hash)); err != nil {
+func deleteHeaderWithoutNumber(db DatabaseDeleter, hash common.Hash, number uint64) {
+	if err := db.Delete(dbutils.HeaderPrefix, dbutils.HeaderKey(number, hash)); err != nil {
 		log.Crit("Failed to delete header", "err", err)
 	}
 }
@@ -289,15 +289,16 @@ func DeleteBody(db DatabaseDeleter, hash common.Hash, number uint64) {
 
 // ReadTdRLP retrieves a block's total difficulty corresponding to the hash in RLP encoding.
 func ReadTdRLP(db DatabaseReader, hash common.Hash, number uint64) rlp.RawValue {
-	data, _ := db.Ancient(freezerDifficultyTable, number)
+	//data, _ := db.Ancient(freezerDifficultyTable, number)
+	data := []byte{}
 	if len(data) == 0 {
-		data, _ = db.Get(headerTDKey(number, hash))
+		data, _ = db.Get(dbutils.HeaderPrefix, dbutils.HeaderTDKey(number, hash))
 		// In the background freezer is moving data from leveldb to flatten files.
 		// So during the first check for ancient db, the data is not yet in there,
 		// but when we reach into leveldb, the data was already moved. That would
 		// result in a not found error.
 		if len(data) == 0 {
-			data, _ = db.Ancient(freezerDifficultyTable, number)
+			//data, _ = db.Ancient(freezerDifficultyTable, number)
 		}
 	}
 	return data
@@ -346,15 +347,16 @@ func HasReceipts(db DatabaseReader, hash common.Hash, number uint64) bool {
 
 // ReadReceiptsRLP retrieves all the transaction receipts belonging to a block in RLP encoding.
 func ReadReceiptsRLP(db DatabaseReader, hash common.Hash, number uint64) rlp.RawValue {
-	data, _ := db.Ancient(freezerReceiptTable, number)
+	data := []byte{}
+	//data, _ := db.Ancient(freezerReceiptTable, number)
 	if len(data) == 0 {
-		data, _ = db.Get(blockReceiptsKey(number, hash))
+		data, _ = db.Get(dbutils.BlockReceiptsPrefix, dbutils.BlockReceiptsKey(number, hash))
 		// In the background freezer is moving data from leveldb to flatten files.
 		// So during the first check for ancient db, the data is not yet in there,
 		// but when we reach into leveldb, the data was already moved. That would
 		// result in a not found error.
 		if len(data) == 0 {
-			data, _ = db.Ancient(freezerReceiptTable, number)
+			//data, _ = db.Ancient(freezerReceiptTable, number)
 		}
 	}
 	return data
@@ -456,6 +458,7 @@ func WriteBlock(db DatabaseWriter, block *types.Block) {
 }
 
 // WriteAncientBlock writes entire block data into ancient store and returns the total written size.
+/*
 func WriteAncientBlock(db ethdb.AncientWriter, block *types.Block, receipts types.Receipts, td *big.Int) int {
 	// Encode all block components to RLP format.
 	headerBlob, err := rlp.EncodeToBytes(block.Header())
@@ -485,9 +488,10 @@ func WriteAncientBlock(db ethdb.AncientWriter, block *types.Block, receipts type
 	}
 	return len(headerBlob) + len(bodyBlob) + len(receiptBlob) + len(tdBlob) + common.HashLength
 }
+*/
 
 // DeleteBlock removes all block data associated with a hash.
-func DeleteBlock(db DatabaseWriter, hash common.Hash, number uint64) {
+func DeleteBlock(db DatabaseDeleter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)
 	DeleteHeader(db, hash, number)
 	DeleteBody(db, hash, number)
@@ -496,7 +500,7 @@ func DeleteBlock(db DatabaseWriter, hash common.Hash, number uint64) {
 
 // DeleteBlockWithoutNumber removes all block data associated with a hash, except
 // the hash to number mapping.
-func DeleteBlockWithoutNumber(db DatabaseWriter, hash common.Hash, number uint64) {
+func DeleteBlockWithoutNumber(db DatabaseDeleter, hash common.Hash, number uint64) {
 	DeleteReceipts(db, hash, number)
 	deleteHeaderWithoutNumber(db, hash, number)
 	DeleteBody(db, hash, number)
