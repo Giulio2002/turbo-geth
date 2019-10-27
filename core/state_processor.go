@@ -129,7 +129,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.IntraBlockSt
 	tds.StartNewBuffer()
 	for i, tx := range block.Transactions() {
 		statedb.Prepare(tx.Hash(), block.Hash(), i)
-		receipt, _, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, tds.TrieStateWriter(), header, tx, usedGas, cfg)
+		receipt, err := ApplyTransaction(p.config, p.bc, nil, gp, statedb, tds.TrieStateWriter(), header, tx, usedGas, cfg)
 		if err != nil {
 			return nil, nil, 0, err
 		}
@@ -140,9 +140,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.IntraBlockSt
 		}
 	}
 	// Finalize the block, applying any consensus engine specific extras (e.g. block rewards)
-	if _, err := p.engine.Finalize(p.config, header, statedb, block.Transactions(), block.Uncles(), receipts); err != nil {
-		return receipts, allLogs, *usedGas, err
-	}
+	p.engine.Finalize(p.config, header, statedb, block.Transactions(), block.Uncles())
 	ctx := p.config.WithEIPsFlags(context.Background(), header.Number)
 	if err := statedb.FinalizeTx(ctx, tds.TrieStateWriter()); err != nil {
 		return receipts, allLogs, *usedGas, err
@@ -164,7 +162,7 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.IntraBlockSt
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.IntraBlockState, stateWriter state.StateWriter, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.IntraBlockState, stateWriter state.StateWriter, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, error) {
 	/*
 		// This code is useful when debugging a certain transaction. If uncommented, together with the code
 		// at the end of this function, after the execution of transaction with given hash, the file
@@ -178,7 +176,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	*/
 	msg, err := tx.AsMessage(types.MakeSigner(config, header.Number))
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	ctx := config.WithEIPsFlags(context.Background(), header.Number)
 	// Create a new context to be used in the EVM environment
@@ -211,11 +209,11 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		}
 	*/
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	// Update the state with pending changes
 	if err = statedb.FinalizeTx(ctx, stateWriter); err != nil {
-		return nil, 0, err
+		return nil, err
 	}
 
 	*usedGas += gas
@@ -232,5 +230,5 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.Hash())
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
-	return receipt, gas, err
+	return receipt, err
 }

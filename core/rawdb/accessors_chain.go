@@ -23,7 +23,6 @@ import (
 
 	// FIXME: unneeded imports
 	"github.com/ledgerwatch/turbo-geth/common/dbutils"
-	"github.com/ledgerwatch/turbo-geth/ethdb"
 	"github.com/ledgerwatch/turbo-geth/params"
 
 	"github.com/ledgerwatch/turbo-geth/common"
@@ -57,7 +56,7 @@ func DeleteCanonicalHash(db DatabaseDeleter, number uint64) {
 
 // ReadAllHashes retrieves all the hashes assigned to blocks at a certain heights,
 // both canonical and reorged forks included.
-func ReadAllHashes(db ethdb.Iteratee, number uint64) []common.Hash {
+func ReadAllHashes(db DatabaseReader, number uint64) []common.Hash {
 	//prefix := headerKeyPrefix(number)
 
 	hashes := make([]common.Hash, 0, 1)

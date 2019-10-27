@@ -448,11 +448,6 @@ func (bc *BlockChain) SetHead(head uint64) error {
 			newHeadBlock := bc.GetBlock(header.Hash(), header.Number.Uint64())
 			if newHeadBlock == nil {
 				newHeadBlock = bc.genesisBlock
-			} else {
-				if _, err := state.New(newHeadBlock.Root(), bc.stateCache); err != nil {
-					// Rewound state missing, rolled back to before pivot, reset to genesis
-					newHeadBlock = bc.genesisBlock
-				}
 			}
 			rawdb.WriteHeadBlockHash(db, newHeadBlock.Hash())
 			bc.currentBlock.Store(newHeadBlock)
@@ -1159,7 +1154,7 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 					return 0, err
 				}
 				size += batch.Size()
-				batch := bc.db.NewBatch()
+				batch = bc.db.NewBatch()
 			}
 		}
 		if batch.Size() > 0 {
@@ -1527,7 +1522,7 @@ func (bc *BlockChain) insertChain(ctx context.Context, chain types.Blocks, verif
 			// Allow up to MaxFuture second in the future blocks. If this limit is exceeded
 			// the chain is discarded and processed at a later time if given.
 			max := big.NewInt(time.Now().Unix() + maxTimeFutureBlocks)
-			if block.Time().Cmp(max) > 0 {
+			if block.Time() > max.Uint64() {
 				return k, events, coalescedLogs, fmt.Errorf("future block: %v > %v", block.Time(), max)
 			}
 			bc.futureBlocks.Add(block.Hash(), block)
@@ -1601,9 +1596,9 @@ func (bc *BlockChain) insertChain(ctx context.Context, chain types.Blocks, verif
 		}
 		stateDB := state.New(bc.trieDbState)
 		// Process block using the parent state as reference point.
-		t0 := time.Now()
+		//t0 := time.Now()
 		receipts, logs, usedGas, err := bc.processor.Process(block, stateDB, bc.trieDbState, bc.vmConfig)
-		t1 := time.Now()
+		//t1 := time.Now()
 		if err != nil {
 			bc.db.Rollback()
 			bc.trieDbState = nil
@@ -1611,16 +1606,18 @@ func (bc *BlockChain) insertChain(ctx context.Context, chain types.Blocks, verif
 			return k, events, coalescedLogs, err
 		}
 		// Update the metrics touched during block processing
-		accountReadTimer.Update(statedb.AccountReads)     // Account reads are complete, we can mark them
-		storageReadTimer.Update(statedb.StorageReads)     // Storage reads are complete, we can mark them
-		accountUpdateTimer.Update(statedb.AccountUpdates) // Account updates are complete, we can mark them
-		storageUpdateTimer.Update(statedb.StorageUpdates) // Storage updates are complete, we can mark them
+		/*
+			accountReadTimer.Update(statedb.AccountReads)     // Account reads are complete, we can mark them
+			storageReadTimer.Update(statedb.StorageReads)     // Storage reads are complete, we can mark them
+			accountUpdateTimer.Update(statedb.AccountUpdates) // Account updates are complete, we can mark them
+			storageUpdateTimer.Update(statedb.StorageUpdates) // Storage updates are complete, we can mark them
 
-		triehash := statedb.AccountHashes + statedb.StorageHashes // Save to not double count in validation
-		trieproc := statedb.AccountReads + statedb.AccountUpdates
-		trieproc += statedb.StorageReads + statedb.StorageUpdates
+			triehash := statedb.AccountHashes + statedb.StorageHashes // Save to not double count in validation
+			trieproc := statedb.AccountReads + statedb.AccountUpdates
+			trieproc += statedb.StorageReads + statedb.StorageUpdates
 
-		blockExecutionTimer.Update(time.Since(substart) - trieproc - triehash)
+			blockExecutionTimer.Update(time.Since(substart) - trieproc - triehash)
+		*/
 
 		// Validate the state using the default validator
 		err = bc.Validator().ValidateState(block, parent, stateDB, bc.trieDbState, receipts, usedGas)
@@ -1633,27 +1630,31 @@ func (bc *BlockChain) insertChain(ctx context.Context, chain types.Blocks, verif
 		proctime := time.Since(start)
 
 		// Update the metrics touched during block validation
-		accountHashTimer.Update(statedb.AccountHashes) // Account hashes are complete, we can mark them
-		storageHashTimer.Update(statedb.StorageHashes) // Storage hashes are complete, we can mark them
+		/*
+			accountHashTimer.Update(statedb.AccountHashes) // Account hashes are complete, we can mark them
+			storageHashTimer.Update(statedb.StorageHashes) // Storage hashes are complete, we can mark them
 
-		blockValidationTimer.Update(time.Since(substart) - (statedb.AccountHashes + statedb.StorageHashes - triehash))
+			blockValidationTimer.Update(time.Since(substart) - (statedb.AccountHashes + statedb.StorageHashes - triehash))
+		*/
 
 		// Write the block to the chain and get the status.
 		status, err := bc.writeBlockWithState(block, receipts, stateDB, bc.trieDbState)
-		t3 := time.Now()
+		//t3 := time.Now()
 		if err != nil {
 			bc.db.Rollback()
 			bc.trieDbState = nil
 			return k, events, coalescedLogs, err
 		}
-		atomic.StoreUint32(&followupInterrupt, 1)
+		//atomic.StoreUint32(&followupInterrupt, 1)
 
 		// Update the metrics touched during block commit
-		accountCommitTimer.Update(statedb.AccountCommits) // Account commits are complete, we can mark them
-		storageCommitTimer.Update(statedb.StorageCommits) // Storage commits are complete, we can mark them
+		/*
+			accountCommitTimer.Update(statedb.AccountCommits) // Account commits are complete, we can mark them
+			storageCommitTimer.Update(statedb.StorageCommits) // Storage commits are complete, we can mark them
 
-		blockWriteTimer.Update(time.Since(substart) - statedb.AccountCommits - statedb.StorageCommits)
-		blockInsertTimer.UpdateSince(start)
+			blockWriteTimer.Update(time.Since(substart) - statedb.AccountCommits - statedb.StorageCommits)
+			blockInsertTimer.UpdateSince(start)
+		*/
 
 		switch status {
 		case CanonStatTy:
@@ -1745,7 +1746,7 @@ func (st *insertStats) report(chain []*types.Block, index int, batch ethdb.Mutat
 			"elapsed", common.PrettyDuration(elapsed), "mgasps", float64(st.usedGas) * 1000 / float64(elapsed),
 			"number", end.Number(), "hash", end.Hash(), "batch", batch.BatchSize(),
 		}
-		if timestamp := time.Unix(end.Time().Int64(), 0); time.Since(timestamp) > time.Minute {
+		if timestamp := time.Unix(int64(end.Time()), 0); time.Since(timestamp) > time.Minute {
 			context = append(context, []interface{}{"age", common.PrettyAge(timestamp)}...)
 		}
 		if st.queued > 0 {
@@ -1778,7 +1779,7 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 		// collectLogs collects the logs that were generated during the
 		// processing of the block that corresponds with the given hash.
 		// These logs are later announced as deleted.
-		collectLogs = func(hash common.Hash) {
+		collectLogs = func(hash common.Hash, removed bool) {
 			// Coalesce logs and set 'Removed'.
 			number := bc.hc.GetBlockNumber(bc.db, hash)
 			if number == nil {
@@ -1894,7 +1895,9 @@ func (bc *BlockChain) reorg(oldBlock, newBlock *types.Block) error {
 	if len(deletedLogs) > 0 {
 		go bc.rmLogsFeed.Send(RemovedLogsEvent{deletedLogs})
 	}
-	batch.Write()
+	if _, err := bc.db.Commit(); err != nil {
+		return err
+	}
 	// If any logs need to be fired, do it now. In theory we could avoid creating
 	// this goroutine if there are no events to fire, but realistcally that only
 	// ever happens if we're reorging empty blocks, which will only happen on idle

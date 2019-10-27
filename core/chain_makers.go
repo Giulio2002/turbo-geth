@@ -199,7 +199,7 @@ func GenerateChain(ctx context.Context, config *params.ChainConfig, parent *type
 	chainreader := &fakeChainReader{config: config}
 	genblock := func(i int, parent *types.Block, statedb *state.IntraBlockState, tds *state.TrieDbState) (*types.Block, types.Receipts) {
 		b := &BlockGen{i: i, chain: blocks, parent: parent, statedb: statedb, triedbstate: tds, config: config, engine: engine}
-		b.header = makeHeader(chainreader, parent, b.engine)
+		b.header = makeHeader(chainreader, parent, statedb, b.engine)
 		// Mutate the state and block according to any hard-fork specs
 		if daoBlock := config.DAOForkBlock; daoBlock != nil {
 			limit := new(big.Int).Add(daoBlock, params.DAOForkExtraRange)
@@ -219,7 +219,7 @@ func GenerateChain(ctx context.Context, config *params.ChainConfig, parent *type
 		}
 		if b.engine != nil {
 			// Finalize and seal the block
-			_, err := b.engine.FinalizeAndAssemble(chainreader, b.header, statedb, b.txs, b.uncles, b.receipts)
+			_, err := b.engine.FinalizeAndAssemble(config, b.header, statedb, b.txs, b.uncles, b.receipts)
 
 			ctx, _ = params.GetNoHistoryByBlock(ctx, b.header.Number)
 			if err := statedb.FinalizeTx(ctx, tds.TrieStateWriter()); err != nil {

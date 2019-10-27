@@ -27,7 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/consensus"
 	"github.com/ledgerwatch/turbo-geth/core/rawdb"
@@ -281,8 +281,8 @@ func (hc *HeaderChain) InsertHeaderChain(chain []*types.Header, writeHeader WhCa
 		// If the header's already known, skip it, otherwise store
 		hash := header.Hash()
 		if hc.HasHeader(hash, header.Number.Uint64()) {
-			externTd := hc.GetTd(hash, header.Number.Uint64())
-			localTd := hc.GetTd(hc.currentHeaderHash, hc.CurrentHeader().Number.Uint64())
+			externTd := hc.GetTd(hc.chainDb, hash, header.Number.Uint64())
+			localTd := hc.GetTd(hc.chainDb, hc.currentHeaderHash, hc.CurrentHeader().Number.Uint64())
 			if externTd == nil || externTd.Cmp(localTd) <= 0 {
 				stats.ignored++
 				continue
