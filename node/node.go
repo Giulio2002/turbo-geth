@@ -607,7 +607,7 @@ func (n *Node) EventMux() *event.TypeMux {
 // ephemeral, a memory database is returned.
 func (n *Node) OpenDatabase(name string) (ethdb.Database, error) {
 	if n.config.DataDir == "" {
-		return rawdb.NewMemoryDatabase(), nil
+		return ethdb.NewMemDatabase(), nil
 	}
 	return ethdb.NewBoltDatabase(n.config.ResolvePath(name))
 }
