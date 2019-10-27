@@ -28,6 +28,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/common/hexutil"
 	"github.com/ledgerwatch/turbo-geth/core"
@@ -36,7 +37,6 @@ import (
 	"github.com/ledgerwatch/turbo-geth/core/types"
 	"github.com/ledgerwatch/turbo-geth/ethdb"
 	"github.com/ledgerwatch/turbo-geth/internal/ethapi"
-	"github.com/ledgerwatch/turbo-geth/params"
 	"github.com/ledgerwatch/turbo-geth/rlp"
 	"github.com/ledgerwatch/turbo-geth/rpc"
 )
@@ -521,29 +521,6 @@ func (api *PrivateDebugAPI) getModifiedAccounts(startBlock, endBlock *types.Bloc
 		return nil, fmt.Errorf("start block height (%d) must be less than end block height (%d)", startNum, endNum)
 	}
 
-<<<<<<< HEAD
-	oldTrie, err := trie.NewSecure(startBlock.Root(), triedb)
-	if err != nil {
-		return nil, err
-	}
-	newTrie, err := trie.NewSecure(endBlock.Root(), triedb)
-	if err != nil {
-		return nil, err
-	}
-	diff, _ := trie.NewDifferenceIterator(oldTrie.NodeIterator([]byte{}), newTrie.NodeIterator([]byte{}))
-	iter := trie.NewIterator(diff)
-
-	var dirty []common.Address
-	for iter.Next() {
-		key := newTrie.GetKey(iter.Key)
-		if key == nil {
-			return nil, fmt.Errorf("no preimage found for hash %x", iter.Key)
-		}
-		dirty = append(dirty, common.BytesToAddress(key))
-	}
-	return dirty, nil
-=======
 	dirty, err := ethdb.GetModifiedAccounts(api.eth.blockchain.ChainDb(), startNum, endNum)
 	return dirty, err
->>>>>>> Apply Turbo-Geth modifications to go-ethereum codebase
 }
