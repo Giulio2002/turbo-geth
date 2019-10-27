@@ -48,7 +48,7 @@ type Account struct {
 
 // getState fetches the IntraBlockState object for an account.
 func (a *Account) getState(ctx context.Context) (*state.IntraBlockState, error) {
-	state, _, err := a.backend.StateAndHeaderByNumber(ctx, a.blockNumber)
+	state, _, err := a.backend.StateAndHeaderByNumber(ctx, *a.blockNrOrHash.BlockNumber)
 	return state, err
 }
 
