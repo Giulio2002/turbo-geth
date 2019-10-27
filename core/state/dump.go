@@ -165,6 +165,10 @@ func (self *TrieDbState) RawDump(excludeCode, excludeStorage, excludeMissingPrei
 	return *dump
 }
 
+func (self *TrieDbState) DefaultRawDump() Dump {
+	return self.RawDump(false, false, false)
+}
+
 // DefaultDump returns a JSON string representing the state with the default params
 func (self *TrieDbState) DefaultDump() []byte {
 	return self.Dump(false, false, false)
