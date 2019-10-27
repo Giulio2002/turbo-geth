@@ -60,6 +60,10 @@ type Database interface {
 	Size() int
 	Keys() ([][]byte, error)
 	MemCopy() Database
+	// [TURBO-GETH] Freezer support (minimum amount that is actually used)
+	// FIXME: implement support if needed
+	Ancients() (uint64, error)
+	TruncateAncients(items uint64) error
 }
 
 // Extended version of the Batch, with read capabilites
@@ -68,9 +72,4 @@ type Mutation interface {
 	Commit() (uint64, error)
 	Rollback()
 	BatchSize() int
-
-	// [TURBO-GETH] Freezer support (minimum amount that is actually used)
-	// FIXME: implement support if needed
-	Ancients() (uint64, error)
-	TruncateAncients(items uint64) error
 }

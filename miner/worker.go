@@ -709,12 +709,12 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.tds.TrieStateWriter(), w.current.header, tx, &w.current.header.GasUsed, *w.chain.GetVMConfig())
+	receipt, err := core.ApplyTransaction(w.chainConfig, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.tds.TrieStateWriter(), w.current.header, tx, &w.current.header.GasUsed, *w.chain.GetVMConfig())
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
 		return nil, err
 	}
-	if !w.config.IsByzantium(w.current.header.Number) {
+	if !w.chainConfig.IsByzantium(w.current.header.Number) {
 		w.current.tds.StartNewBuffer()
 	}
 	w.current.txs = append(w.current.txs, tx)
@@ -975,11 +975,10 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	}
 	s := w.current.state.Copy()
 	tds := w.current.tds.Copy()
-	block, err := w.engine.Finalize(w.config, w.current.header, s, w.current.txs, uncles, w.current.receipts)
+	block, err := w.engine.FinalizeAndAssemble(w.chainConfig, w.current.header, s, w.current.txs, uncles, w.current.receipts)
 	if err != nil {
 		return err
 	}
-
 	ctx := w.chain.Config().WithEIPsFlags(context.Background(), w.current.header.Number)
 	if err = s.FinalizeTx(ctx, w.current.tds.TrieStateWriter()); err != nil {
 		return err

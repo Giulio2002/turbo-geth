@@ -470,6 +470,15 @@ func (sdb *IntraBlockState) SetState(addr common.Address, key, value common.Hash
 	}
 }
 
+// SetStorage replaces the entire storage for the specified account with given
+// storage. This function should only be used for debugging.
+func (sdb *IntraBlockState) SetStorage(addr common.Address, storage map[common.Hash]common.Hash) {
+	stateObject := sdb.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.SetStorage(storage)
+	}
+}
+
 // Suicide marks the given account as suicided.
 // This clears the account balance.
 //

@@ -25,15 +25,16 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/ledgerwatch/turbo-geth/core/rawdb"
 	ethereum "github.com/ledgerwatch/turbo-geth"
 	"github.com/ledgerwatch/turbo-geth/common"
+	"github.com/ledgerwatch/turbo-geth/core/rawdb"
 	"github.com/ledgerwatch/turbo-geth/core/types"
 	"github.com/ledgerwatch/turbo-geth/ethdb"
 	"github.com/ledgerwatch/turbo-geth/event"
 	"github.com/ledgerwatch/turbo-geth/log"
 	"github.com/ledgerwatch/turbo-geth/metrics"
 	"github.com/ledgerwatch/turbo-geth/params"
+	"github.com/ledgerwatch/turbo-geth/trie"
 )
 
 var (
@@ -56,9 +57,10 @@ var (
 	qosConfidenceCap = 10   // Number of peers above which not to modify RTT confidence
 	qosTuningImpact  = 0.25 // Impact that a new tuning target has on the previous value
 
-	maxQueuedHeaders  = 32 * 1024 // [eth/62] Maximum number of headers to queue for import (DOS protection)
-	maxHeadersProcess = 16536     // Number of header download results to import at once into the chain
-	maxResultsProcess = 16536     // Number of content download results to import at once into the chain
+	maxQueuedHeaders         = 32 * 1024                    // [eth/62] Maximum number of headers to queue for import (DOS protection)
+	maxHeadersProcess        = 16536                        // Number of header download results to import at once into the chain
+	maxResultsProcess        = 16536                        // Number of content download results to import at once into the chain
+	maxForkAncestry   uint64 = params.ImmutabilityThreshold // Maximum chain reorganisation (locally redeclared so tests can reduce it)
 
 	reorgProtThreshold   = 48 // Threshold number of recent blocks to disable mini reorg protection
 	reorgProtHeaderDelay = 2  // Number of headers to delay delivering to cover mini reorgs
@@ -210,7 +212,7 @@ func New(checkpoint uint64, stateDb ethdb.Database, stateBloom *trie.SyncBloom, 
 		lightchain = chain
 	}
 	dl := &Downloader{
-		mode:          mode,
+		mode:          FullSync,
 		stateDB:       stateDb,
 		mux:           mux,
 		queue:         newQueue(),

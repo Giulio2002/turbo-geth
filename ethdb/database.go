@@ -649,3 +649,14 @@ func (db *BoltDatabase) NewBatch() Mutation {
 	}
 	return m
 }
+
+// [TURBO-GETH] Freezer support (not implemented yet)
+// Ancients returns an error as we don't have a backing chain freezer.
+func (db *BoltDatabase) Ancients() (uint64, error) {
+	return 0, errNotSupported
+}
+
+// TruncateAncients returns an error as we don't have a backing chain freezer.
+func (db *BoltDatabase) TruncateAncients(items uint64) error {
+	return errNotSupported
+}
