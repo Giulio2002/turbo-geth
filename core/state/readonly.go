@@ -133,6 +133,30 @@ func (dbs *DbState) ForEachStorage(addr common.Address, start []byte, cb func(ke
 	})
 }
 
+func (dbs *DbState) ForEachAccount(start []byte, cb func(address *common.Address, addrHash common.Hash), maxResults int) {
+	results := 0
+	err := dbs.db.WalkAsOf(dbutils.AccountsBucket, dbutils.AccountsHistoryBucket, start[:], 0, dbs.blockNr+1, func(ks, vs []byte) (bool, error) {
+		if vs == nil || len(vs) == 0 {
+			// Skip deleted entries
+			return true, nil
+		}
+		addrHash := common.BytesToHash(ks[:common.HashLength])
+		preimage, err := dbs.db.Get(dbutils.PreimagePrefix, addrHash[:])
+		if err == nil {
+			addr := &common.Address{}
+			addr.SetBytes(preimage)
+			cb(addr, addrHash)
+		} else {
+			cb(nil, addrHash)
+		}
+		results++
+		return results < maxResults, nil
+	})
+	if err != nil {
+		log.Error("ForEachAccount walk error", "err", err)
+	}
+}
+
 func (dbs *DbState) ReadAccountData(address common.Address) (*accounts.Account, error) {
 	addrHash, err := common.HashData(address[:])
 	if err != nil {

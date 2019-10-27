@@ -28,7 +28,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ethereum/go-ethereum/trie"
 	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/common/hexutil"
 	"github.com/ledgerwatch/turbo-geth/core"
@@ -352,30 +351,25 @@ type AccountRangeResult struct {
 	Next     common.Hash                     `json:"next"`
 }
 
-func accountRange(st state.Trie, start *common.Hash, maxResults int) (AccountRangeResult, error) {
+func accountRange(dbstate *state.DbState, start *common.Hash, maxResults int) (AccountRangeResult, error) {
 	if start == nil {
 		start = &common.Hash{0}
 	}
-	it := trie.NewIterator(st.NodeIterator(start.Bytes()))
 	result := AccountRangeResult{Accounts: make(map[common.Hash]*common.Address), Next: common.Hash{}}
 
 	if maxResults > AccountRangeMaxResults {
 		maxResults = AccountRangeMaxResults
 	}
 
-	for i := 0; i < maxResults && it.Next(); i++ {
-		if preimage := st.GetKey(it.Key); preimage != nil {
-			addr := &common.Address{}
-			addr.SetBytes(preimage)
-			result.Accounts[common.BytesToHash(it.Key)] = addr
+	resultCount := 0
+	dbstate.ForEachAccount(start[:], func(address *common.Address, addrHash common.Hash) {
+		if resultCount < maxResults {
+			result.Accounts[addrHash] = address
 		} else {
-			result.Accounts[common.BytesToHash(it.Key)] = nil
+			result.Next = addrHash
 		}
-	}
-
-	if it.Next() {
-		result.Next = common.BytesToHash(it.Key)
-	}
+		resultCount++
+	}, maxResults+1)
 
 	return result, nil
 }
@@ -385,28 +379,16 @@ const AccountRangeMaxResults = 256
 
 // AccountRange enumerates all accounts in the latest state
 func (api *PrivateDebugAPI) AccountRange(ctx context.Context, start *common.Hash, maxResults int) (AccountRangeResult, error) {
-	var statedb *state.StateDB
+	var dbstate *state.DbState // Read-only
 	var err error
 	block := api.eth.blockchain.CurrentBlock()
 
-	if len(block.Transactions()) == 0 {
-		statedb, err = api.computeStateDB(block, defaultTraceReexec)
-		if err != nil {
-			return AccountRangeResult{}, err
-		}
-	} else {
-		_, _, statedb, err = api.computeTxEnv(block.Hash(), len(block.Transactions())-1, 0)
-		if err != nil {
-			return AccountRangeResult{}, err
-		}
-	}
-
-	trie, err := statedb.Database().OpenTrie(block.Header().Root)
+	_, _, _, dbstate, _, err = api.computeTxEnv(block.Hash(), len(block.Transactions())-1)
 	if err != nil {
 		return AccountRangeResult{}, err
 	}
 
-	return accountRange(trie, start, maxResults)
+	return accountRange(dbstate, start, maxResults)
 }
 
 // StorageRangeResult is the result of a debug_storageRangeAt API call.
