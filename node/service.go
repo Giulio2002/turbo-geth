@@ -17,7 +17,6 @@
 package node
 
 import (
-	"path/filepath"
 	"reflect"
 
 	"github.com/ledgerwatch/turbo-geth/accounts"
@@ -40,23 +39,27 @@ type ServiceContext struct {
 // OpenDatabase opens an existing database with the given name (or creates one
 // if no previous can be found) from within the node's data directory. If the
 // node is an ephemeral one, a memory database is returned.
+// FIXME: OpenDatabaseWithFreezer should be implemented too
 func (ctx *ServiceContext) OpenDatabase(name string) (ethdb.Database, error) {
 	if ctx.config.DataDir == "" {
-		return rawdb.NewMemoryDatabase(), nil
+		return ethdb.NewMemDatabase(), nil
 	}
-	db, err := ethdb.NewBoltDatabase(ctx.config.ResolvePath(name))
-	if err != nil {
-		return nil, err
-	}
-	root := ctx.config.ResolvePath(name)
+	return ethdb.NewBoltDatabase(ctx.config.ResolvePath(name))
+	/*
+		if err != nil {
+			return nil, err
+		}
+		root := ctx.config.ResolvePath(name)
 
-	switch {
-	case freezer == "":
-		freezer = filepath.Join(root, "ancient")
-	case !filepath.IsAbs(freezer):
-		freezer = ctx.config.ResolvePath(freezer)
-	}
-	return rawdb.NewLevelDBDatabaseWithFreezer(root, cache, handles, freezer, namespace)
+			FIXME: restore and move to OpenDatabaseWithFreezer
+			switch {
+			case freezer == "":
+				freezer = filepath.Join(root, "ancient")
+			case !filepath.IsAbs(freezer):
+				freezer = ctx.config.ResolvePath(freezer)
+			}
+		return ethdb.NewBoltDatabase(root)
+	*/
 }
 
 // ResolvePath resolves a user path into the data directory if that was relative
