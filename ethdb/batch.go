@@ -68,4 +68,9 @@ type Mutation interface {
 	Commit() (uint64, error)
 	Rollback()
 	BatchSize() int
+
+	// [TURBO-GETH] Freezer support (minimum amount that is actually used)
+	// FIXME: implement support if needed
+	Ancients() (uint64, error)
+	TruncateAncients(items uint64) error
 }

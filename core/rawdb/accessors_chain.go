@@ -533,3 +533,9 @@ func FindCommonAncestor(db DatabaseReader, a, b *types.Header) *types.Header {
 	}
 	return a
 }
+
+// FIXME: implement in Turbo-Geth
+// WriteAncientBlock writes entire block data into ancient store and returns the total written size.
+func WriteAncientBlock(db DatabaseWriter, block *types.Block, receipts types.Receipts, td *big.Int) int {
+	panic("not implemented")
+}

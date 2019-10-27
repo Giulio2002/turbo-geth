@@ -2,10 +2,12 @@ package ethdb
 
 import (
 	"bytes"
+	"errors"
+	"sync"
+
 	"github.com/ledgerwatch/turbo-geth/common"
 	"github.com/ledgerwatch/turbo-geth/common/dbutils"
 	"github.com/petar/GoLLRB/llrb"
-	"sync"
 )
 
 type mutation struct {
@@ -412,4 +414,17 @@ func (m *mutation) NewBatch() Mutation {
 
 func (m *mutation) MemCopy() Database {
 	panic("Not implemented")
+}
+
+var errNotSupported = errors.New("not supported")
+
+// [TURBO-GETH] Freezer support (not implemented yet)
+// Ancients returns an error as we don't have a backing chain freezer.
+func (m *mutation) Ancients() (uint64, error) {
+	return 0, errNotSupported
+}
+
+// TruncateAncients returns an error as we don't have a backing chain freezer.
+func (m *mutation) TruncateAncients(items uint64) error {
+	return errNotSupported
 }

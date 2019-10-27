@@ -1154,17 +1154,17 @@ func (bc *BlockChain) InsertReceiptChain(blockChain types.Blocks, receiptChain [
 			rawdb.WriteTxLookupEntries(batch, block)
 
 			stats.processed++
-			if batch.ValueSize() >= ethdb.IdealBatchSize {
-				if err := batch.Write(); err != nil {
+			if batch.Size() >= ethdb.IdealBatchSize {
+				if _, err := batch.Commit(); err != nil {
 					return 0, err
 				}
-				size += batch.ValueSize()
-				batch.Reset()
+				size += batch.Size()
+				batch := bc.db.NewBatch()
 			}
 		}
-		if batch.ValueSize() > 0 {
-			size += batch.ValueSize()
-			if err := batch.Write(); err != nil {
+		if batch.Size() > 0 {
+			size += batch.Size()
+			if _, err := batch.Commit(); err != nil {
 				return 0, err
 			}
 		}
