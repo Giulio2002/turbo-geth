@@ -62,7 +62,7 @@ type accountLeaf struct {
 	Val *accounts.Account
 }
 
-type accountRange struct {
+type firehoseAccountRange struct {
 	Status Status
 	Leaves []accountLeaf
 }
@@ -75,7 +75,7 @@ type getStateRangesOrNodes struct {
 
 type stateRangesMsg struct {
 	ID              uint64
-	Entries         []accountRange
+	Entries         []firehoseAccountRange
 	AvailableBlocks []common.Hash
 }
 

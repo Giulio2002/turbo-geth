@@ -31,9 +31,8 @@ func (c Config) MarshalTOML() (interface{}, error) {
 		LightServ               int `toml:",omitempty"`
 		LightPeers              int `toml:",omitempty"`
 		OnlyAnnounce            bool
-		ULC                     *ULCConfig `toml:",omitempty"`
-		SkipBcVersionCheck      bool       `toml:"-"`
-		DatabaseHandles         int        `toml:"-"`
+		SkipBcVersionCheck      bool `toml:"-"`
+		DatabaseHandles         int  `toml:"-"`
 		DatabaseCache           int
 		DatabaseFreezer         string
 		TrieCleanCache          int
@@ -53,7 +52,7 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	}
 	var enc Config
 	enc.Genesis = c.Genesis
-	enc.NetworkID = c.NetworkID
+	enc.NetworkID = c.NetworkId
 	enc.SyncMode = c.SyncMode
 	enc.NoPruning = c.NoPruning
 	enc.NoPrefetch = c.NoPrefetch
@@ -64,9 +63,6 @@ func (c Config) MarshalTOML() (interface{}, error) {
 	enc.LightIngress = c.LightIngress
 	enc.LightEgress = c.LightEgress
 	enc.LightPeers = c.LightPeers
-	enc.UltraLightServers = c.UltraLightServers
-	enc.UltraLightFraction = c.UltraLightFraction
-	enc.UltraLightOnlyAnnounce = c.UltraLightOnlyAnnounce
 	enc.SkipBcVersionCheck = c.SkipBcVersionCheck
 	enc.DatabaseHandles = c.DatabaseHandles
 	enc.DatabaseCache = c.DatabaseCache
@@ -104,9 +100,8 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		LightServ               *int `toml:",omitempty"`
 		LightPeers              *int `toml:",omitempty"`
 		OnlyAnnounce            *bool
-		ULC                     *ULCConfig `toml:",omitempty"`
-		SkipBcVersionCheck      *bool      `toml:"-"`
-		DatabaseHandles         *int       `toml:"-"`
+		SkipBcVersionCheck      *bool `toml:"-"`
+		DatabaseHandles         *int  `toml:"-"`
 		DatabaseCache           *int
 		DatabaseFreezer         *string
 		TrieCleanCache          *int
@@ -132,7 +127,7 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 		c.Genesis = dec.Genesis
 	}
 	if dec.NetworkID != nil {
-		c.NetworkID = *dec.NetworkID
+		c.NetworkId = *dec.NetworkID
 	}
 	if dec.SyncMode != nil {
 		c.SyncMode = *dec.SyncMode
@@ -163,15 +158,6 @@ func (c *Config) UnmarshalTOML(unmarshal func(interface{}) error) error {
 	}
 	if dec.LightPeers != nil {
 		c.LightPeers = *dec.LightPeers
-	}
-	if dec.UltraLightServers != nil {
-		c.UltraLightServers = dec.UltraLightServers
-	}
-	if dec.UltraLightFraction != nil {
-		c.UltraLightFraction = *dec.UltraLightFraction
-	}
-	if dec.UltraLightOnlyAnnounce != nil {
-		c.UltraLightOnlyAnnounce = *dec.UltraLightOnlyAnnounce
 	}
 	if dec.SkipBcVersionCheck != nil {
 		c.SkipBcVersionCheck = *dec.SkipBcVersionCheck
