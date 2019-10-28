@@ -296,7 +296,7 @@ func (api *PrivateDebugAPI) traceChain(ctx context.Context, start, end *types.Bl
 				break
 			}
 			// Finalize the state so any modifications are written to the trie
-			ctx := api.eth.chainConfig.WithEIPsFlags(context.Background(), big.NewInt(int64(number)))
+			ctx := api.eth.blockchain.Config().WithEIPsFlags(context.Background(), big.NewInt(int64(number)))
 			tds.SetBlockNr(number)
 			err = statedb.CommitBlock(ctx, tds.DbStateWriter())
 			if err != nil {
@@ -598,6 +598,17 @@ func (api *PrivateDebugAPI) standardTraceBlockToFile(ctx context.Context, block 
 	return dumps, nil
 }
 
+// containsTx reports whether the transaction with a certain hash
+// is contained within the specified block.
+func containsTx(block *types.Block, hash common.Hash) bool {
+	for _, tx := range block.Transactions() {
+		if tx.Hash() == hash {
+			return true
+		}
+	}
+	return false
+}
+
 // computeIntraBlockState retrieves the state database associated with a certain block.
 // If no state is locally available for the given block, a number of blocks are
 // attempted to be reexecuted to generate the desired state.
@@ -662,7 +673,7 @@ func (api *PrivateDebugAPI) traceTx(ctx context.Context, message core.Message, v
 		tracer = vm.NewStructLogger(config.LogConfig)
 	}
 	// Run the transaction with tracing enabled.
-	vmenv := vm.NewEVM(vmctx, state, api.config, vm.Config{Debug: true, Tracer: tracer})
+	vmenv := vm.NewEVM(vmctx, state, api.eth.blockchain.Config(), vm.Config{Debug: true, Tracer: tracer})
 
 	ret, gas, failed, err := core.ApplyMessage(vmenv, message, new(core.GasPool).AddGas(message.Gas()))
 	if err != nil {
@@ -709,7 +720,7 @@ func (api *PrivateDebugAPI) computeTxEnv(blockHash common.Hash, txIndex int) (co
 			return msg, EVMcontext, statedb, dbstate, parent.NumberU64(), nil
 		}
 		// Not yet the searched for transaction, execute on top of the current state
-		vmenv := vm.NewEVM(EVMcontext, statedb, api.config, vm.Config{})
+		vmenv := vm.NewEVM(EVMcontext, statedb, api.eth.blockchain.Config(), vm.Config{})
 		if _, _, _, err := core.ApplyMessage(vmenv, msg, new(core.GasPool).AddGas(tx.Gas())); err != nil {
 			return nil, vm.Context{}, nil, nil, 0, fmt.Errorf("transaction %x failed: %v", tx.Hash(), err)
 		}

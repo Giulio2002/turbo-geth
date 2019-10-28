@@ -625,14 +625,14 @@ func (w *worker) resultLoop() {
 
 // makeCurrent creates a new environment for the current cycle.
 func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
-	state, tds, err := w.chain.StateAt(parent.Root(), parent.NumberU64())
+	state, _, err := w.chain.StateAt(parent.Root(), parent.NumberU64())
 	if err != nil {
 		return err
 	}
 	env := &environment{
 		signer:    types.NewEIP155Signer(w.chainConfig.ChainID),
 		state:     state,
-		tds:       tds,
+		tds:       nil,
 		ancestors: mapset.NewSet(),
 		family:    mapset.NewSet(),
 		uncles:    mapset.NewSet(),

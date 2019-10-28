@@ -548,29 +548,26 @@ func (bc *BlockChain) Processor() Processor {
 }
 
 // State returns a new mutable state based on the current HEAD block.
-func (bc *BlockChain) State() (*state.IntraBlockState, *state.TrieDbState, error) {
+func (bc *BlockChain) State() (*state.IntraBlockState, *state.DbState, error) {
 	return bc.StateAt(bc.CurrentBlock().Root(), bc.CurrentBlock().NumberU64())
 }
 
 // StateAt returns a new mutable state based on a particular point in time.
-func (bc *BlockChain) StateAt(root common.Hash, blockNr uint64) (*state.IntraBlockState, *state.TrieDbState, error) {
-	tds, err := state.NewTrieDbState(root, bc.db, blockNr)
-	if err != nil {
-		return nil, nil, err
-	}
-	return state.New(tds), tds, nil
+func (bc *BlockChain) StateAt(root common.Hash, blockNr uint64) (*state.IntraBlockState, *state.DbState, error) {
+	dbstate := state.NewDbState(bc.db, blockNr)
+	return state.New(dbstate), dbstate, nil
 }
 
 // GetAddressFromItsHash returns the preimage of a given address hash.
 func (bc *BlockChain) GetAddressFromItsHash(hash common.Hash) (common.Address, error) {
 	var addr common.Address
 
-	_, tds, err := bc.State()
+	_, dbstate, err := bc.State()
 	if err != nil {
 		return addr, err
 	}
 
-	key := tds.GetKey(hash.Bytes())
+	key := dbstate.GetKey(hash.Bytes())
 	if len(key) != common.AddressLength {
 		return addr, ErrNotFound
 	}
