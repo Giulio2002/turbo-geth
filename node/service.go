@@ -36,10 +36,15 @@ type ServiceContext struct {
 	AccountManager *accounts.Manager        // Account manager created by the node.
 }
 
+// OpenDatabaseWithFreezer
+// FIXME: implement the functionality
+func (ctx *ServiceContext) OpenDatabaseWithFreezer(name string, freezer string) (ethdb.Database, error) {
+	return ctx.OpenDatabase(name)
+}
+
 // OpenDatabase opens an existing database with the given name (or creates one
 // if no previous can be found) from within the node's data directory. If the
 // node is an ephemeral one, a memory database is returned.
-// FIXME: OpenDatabaseWithFreezer should be implemented too
 func (ctx *ServiceContext) OpenDatabase(name string) (ethdb.Database, error) {
 	if ctx.config.DataDir == "" {
 		return ethdb.NewMemDatabase(), nil
