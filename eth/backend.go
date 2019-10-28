@@ -527,6 +527,10 @@ func (s *Ethereum) Protocols() []p2p.Protocol {
 		protos[i] = s.protocolManager.makeProtocol(vsn)
 		protos[i].Attributes = []enr.Entry{s.currentEthEntry()}
 	}
+
+	// Firehose
+	protos = append(protos, s.protocolManager.makeFirehoseProtocol())
+
 	if s.lesServer != nil {
 		protos = append(protos, s.lesServer.Protocols()...)
 	}

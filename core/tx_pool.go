@@ -122,7 +122,7 @@ const (
 type blockChain interface {
 	CurrentBlock() *types.Block
 	GetBlock(hash common.Hash, number uint64) *types.Block
-	StateAt(root common.Hash, blockNr uint64) (*state.IntraBlockState, *state.TrieDbState, error)
+	StateAt(root common.Hash, blockNr uint64) (*state.IntraBlockState, *state.DbState, error)
 
 	SubscribeChainHeadEvent(ch chan<- ChainHeadEvent) event.Subscription
 }
@@ -225,7 +225,7 @@ type TxPool struct {
 	pendingNonces *txNoncer // Pending state tracking virtual nonces
 
 	currentState  *state.IntraBlockState // Current state in the blockchain head
-	currentTds    *state.TrieDbState
+	currentTds    *state.DbState
 	currentMaxGas uint64 // Current gas limit for transaction caps
 
 	locals  *accountSet // Set of local transaction to exempt from eviction rules
